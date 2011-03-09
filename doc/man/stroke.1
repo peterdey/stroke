@@ -1,0 +1,462 @@
+.\" Copyright (C) 2009 Free Software Foundation, Inc.
+.\" Copying and distribution of this file, with or without modification,
+.\" are permitted in any medium without royalty provided the copyright
+.\" notice and this notice are preserved.
+.TH STROKE 1 "02-24-2011" "0.1.3" "User commands"
+.SH NAME
+stroke \- Dynamically changing modification, access, and change time components
+.SH SYNOPSIS
+.PP
+.B stroke
+.B [\ \-s\ |\ \-r\ |\ \-b\ ]
+[\-l]
+[\-c]
+[\-f]
+.B ARGUMENT
+.B FILE...
+.PP
+.B stroke 
+.B [\ \-i\ ]
+[\-l]
+[\-c]
+[\-f]
+.B FILE...
+.SH DESCRIPTION
+.PP 
+Sometimes it is desirable to exclusively change very specific components
+of a file's modification, access, or change time; however, the method
+provided by the conventional
+.BR touch (1)
+utility appears inadequate for this basic task. Moreover, easily modifying a file's change time is not possible at all.
+.PP
+Stroke offers a solution by providing a user with an advanced command line
+interface which allows her to utilize an extensive syntax to dynamically specify certain date and time components to be altered.
+.PP
+All in all stroke can be seen as a potent alternative to the conventional 
+.BR touch (1) 
+utility that
+leaves a user with more options.
+.SH OPTIONS
+.TP
+.B \-s, \-stamp
+.i STAMP
+ARGUMENT must be by supplied to be a time stamp of the form
+[[CC]YY]MMDDhhmm[.ss][:SELECTOR] (for a more detailed description see
+.B TIME STAMPS
+below).
+.TP
+.B \-r, \-reference
+.i FILE
+If given, ARGUMENT stands for a reference file whose time and date is
+to be applied unchanged to FILE.
+.TP
+.B \-l, \-symlinks
+If FILE or reference file (in case of `-r') refer
+to a symbolic link, read access, modification and
+change time from that link. Also, if FILE refers
+to a symbolic link, alter that link's modification,
+access, and change time. Note that change time will
+only be modified if `-c' is given (see below). 
+.TP
+.B \-c, \-ctime
+In all of the changes done to a file its change time is only
+effectively altered if explicitly required so; this can be achieved by specifying this option on
+the command line. It can mutually be applied with other options that
+implicate immanent alterations to a file's time or date values. Note that giving
+this option might necessitate super user privileges.
+.TP
+.B \-p, \-preserve
+When altering modification or access time, prevent the change time from
+being implicitly altered too (for more details see
+.B NOTES:
+Change time preservation). Root privileges might be required.
+.TP
+.B \-i, \-info
+If this option is given, ARGUMENT must refer to a file about
+which modification, access, and change time information will be
+printed; in case of a symbolic link, additional information is
+related in the output.
+
+Information whether
+.I daylight saving time
+is in effect is given by prepending a `+' for in effect, a `-' for not
+in effect, or a `?' for unknown to the string `dst' in parenthesis.
+.TP
+.B \-b, \-batch
+Giving this option requires ARGUMENT to refer to a stroke batch file from which modifier expressions are to be read (for details
+on modifier expressions see
+.B BATCH FILES
+below).
+.TP
+.B \-v, \-verbose
+Generate more verbose output; show what is internally done.
+.TP
+.B \-q, \-quiet
+Do not output anything. Only return value to calling shell informs about success or
+failure (see
+.B RETURN VALUE
+below).
+.TP
+.B \-h, \-help 
+Print a succinct help message.
+.TP
+.B \-version
+Print program information
+.SH ARGUMENTS
+The default behavior of stroke is much like that of
+.BR touch (1).
+By however having the ability to
+specify ARGUMENTs a great many more options are provided.
+.PP
+The meaning of ARGUMENT may differ between three different things.
+Following is a list of what these are:
+.IP "\-s, \-stamp"
+ARGUMENT is interpreted as a time stamp. For more details see
+.B TIME STAMPS
+below.
+.IP "\-r, \-reference"
+If given, ARGUMENT must refer to a file whose date and time values
+will yield those of FILE.
+.IP "\-b, \-batch"
+ARGUMENT must refer to stroke batch file (see
+.B BATCH FILES
+below).
+.IP "None (default)"
+By default, ARGUMENT is considered to be a modifier expression list (see
+.B MODIFIERS
+below). Using modifiers to dynamically set date and time
+values might be considered the main feature of stroke.
+.SS MODIFIERS
+Through modifiers it is possible to alter only very specific components of modification, access, or
+change time in a very organic way.
+.PP
+In any usual case, that is when `-s, -stamp' or `-r, -reference' are
+not given, ARGUMENT is understood to be a modifier expression list to which a well-defined syntax and semantics rule-set (grammar) applies.
+.PP
+This grammar can be expressed in greater detail by representing it using the following
+.B EBNF
+notation:
+.sp
+.RS
+.nf
+.IP "(1) LIST = ARGUMENT ="
+( EXPRESSION , { "," | ";" , EXPRESSION } ) | "-" ;
+.IP "(2) EXPRESSION ="
+IDENTIFIER , { "=" , IDENTIFIER }, "=",
+VALUE | MODULATOR | IDENTIFIER ;
+.IP "(3) IDENTIFIER ="
+ QUALIFIER , SPECIFIER ;
+.IP "(4) QUALIFIER ="
+"m" | "a" | "c" ;
+.IP "(5) SPECIFIER ="
+"Y" | "M" | "D" | "h" | "m" | "s" | "l";
+.IP "(6) MODULATOR ="
+"+" | "-" , "+" | "-" | VALUE ;
+.IP "(7) VALUE ="
+"0" | DIGIT, { DIGIT | "0" } ;
+.IP "(8) DIGIT ="
+"1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+.fi
+.RE
+.IP "(1) Modifier expression list"
+The non-terminal symbol LIST stands for the actual
+.B modifier expression list
+that is given on the command line as ARGUMENT, or is supplied through
+the  the input stream
+.BR stdin (3)
+in case of ARGUMENT being `-', or is read from a batch file in case of
+`-b, -batch' being given.
+.IP "(2) Modifier expressions"
+A
+.B modifier expression
+is a simple or chained assignment which - in its
+most basic form - consists of a time value identifier on the left, an equal sign,
+and a VALUE, MODULATOR, or another IDENTIFIER on the right.
+
+During evaluation, a modifier expression expands into partial
+assignments in which each identifier to the left of the rightmost equal sign is singly
+assigned the rightmost integer, resolved identifier value, or
+modulator.
+
+Should any of those partial assignments fail for whatever reason, the
+whole modifier expression is deemed invalid which in turn causes the
+entire modifier expression list to be invalidated.
+.IP "(3) Identifiers"
+An
+.B identifier,
+being composed of qualifier and specifier, essentially
+represents or "identifies" a time or date value. There are identifiers
+for all components of modification, access, and change time.
+.IP "(4) Qualifiers"
+.B Qualifiers
+essentially decide whether an identifier is part of the
+sets of time and date values for modification, access and change time.
+.IP "(5) Specifiers"
+.B Specifiers
+govern about which time or date component is
+represented by an identifier. Their representations are fittingly chosen to match common
+associative mappings of single characters to date and time components.
+
+The specifier "l" stands for
+.I daylight saving time
+whereby the values assignable
+range from 0 to 2. 0 means that daylight saving time should be
+neglected. Whether daylight saving time is seen as being
+in effect depends on the date itself as well as on your local time
+zone settings. A value of 1 indicates that daylight saving time is
+not in effect, 2, on the other hand, indicates that it is.
+.IP "(6) Modulators"
+.B Modulators
+conveniently increment or decrement and identifier's
+associated time or date value; we say they "modulate" their
+identifier's value.
+
+Modulators start with a PLUS `+' or MINUS `-' to
+indicate whether the concerning identifier's value is to be increased or
+decreased respectively. The following VALUE indicates by what
+amount the previously selected increment or decrement operation should be performed.
+
+The shorthand `++' or `--' express that the value in question should
+be either incremented or decremented by a value of one.
+
+.IP "(7), (8) Values and digits"
+A VALUE are all
+.B positive whole numbers
+including 0; they are composed of DIGITs.
+.PP
+An example for a complete modifier expression list LIST that abides by
+all of the above grammatical rules would be:
+.sp
+.RS
+.nf
+mY=aY=1996, mD=23, aD=-5, am=mm=cm=cs, am=mM=++ 
+.fi
+.RE
+.PP
+Note that in this example, "-5" is a modulator for the identifier
+"aD" and not an actual value.
+.PP
+Do also note that when giving LIST on the command line, spaces are probably
+interpreted as argument separators by your shell; hence they should be
+avoided or quotations marks should be applied.
+.SS TIME STAMPS
+Although not offering as much flexibility as modifiers do, time
+stamps are still a very convenient way of setting a date by means of a
+compact format that has the following form:
+.sp
+.RS
+.nf
+[[CC]YY]MMDDhhmm[.ss][:SELECTOR]
+.fi
+.RE
+.PP
+That what is framed by `[' and `]' may or may not be given in a time stamp.
+.PP
+Values are generally given in pairs of two numeric values greater or equal to
+0. A leading 0 becomes necessary if the desired date or time value is smaller than
+10.
+.PP
+A SELECTOR lets you chooses whether modification, access or change time of
+FILE are to be set by applying the time stamp at hand. Valid SELECTORs are
+`m', `a', `c' or any unique combination thereof. Note that if not
+given, SELECTOR implicitly defaults to `m'.
+.PP
+For instance, a valid time stamp would be:
+.sp
+.RS
+.nf
+0005132305.07:am
+.fi
+.RE
+.PP
+Note that it is not required for FILE to exists when time stamps are used; that
+is because a time stamp - even in its most minimal form - provides a
+sufficient amount of information to assemble a valid date.
+.PP
+If  the [[CC]YY] information is left out, the current
+year is assumed. If of this token, only [CC] is not given, the current
+century is assumed for the date assembled. If lastly [.ss] is not
+specified, the value for seconds is taken to be 0.
+.SS "BATCH FILES"
+If `-b, -batch' is given, ARGUMENT must refer to a batch
+file. Modifier expressions are then read from that file in much the
+same way they would be read from the command line if given as
+ARGUMENT.
+.PP
+As the name itself suggests are batch files intended to handle larger
+date and time value modification tasks, possibly also for a much larger number of files than
+just one or two.
+.PP
+Modifier expressions within a stroke batch file may be split into
+individual lines for readability; each of these lines should then end in a SEMICOLON `;'. Modifier expressions themselves, however, may again be
+separated by a simple COMMA ','.
+.PP
+Comments, introduced by a leading POUND SIGN `#' as well as
+empty lines are ignored.
+.PP
+A sample stroke batch file might thus look like this:
+.sp
+.RS
+.nf
+#
+# Sample stroke batch file
+# 
+
+# Modify day values
+mD = cD = 23, aD = 25;
+
+# Increase all month values by one
+mM = aM = cM = ++;
+
+# Liken minutes to seconds
+mm = cm = ms;
+
+# Modify years
+mY = 1994, cY = mY, cY = -2;
+.fi
+.RE
+.PP
+Although this example may seem somewhat concocted, an important
+insight into the core principles of modifier expressions can be gained
+from it.
+.SH EXAMPLES
+A few practical examples shall illustrate the general use of stroke:
+.TP
+.B stroke -ctime cY=mY,cM=mM,cD=mD,ch=ah=mh <file>
+Set a file's change time date components equal to those of its
+modification time. Moreover, set its change time and access time hour
+component equal to that of its modification time.
+.br
+.TP
+.B stroke -preserve mY=aY=++,mM=aM=-2 <file>
+Increment a file's modification and access time year value by one and
+decrement its access and modification month value by 2. In all this, preserve the file's original
+change time. Root privileges might be necessary.
+.br
+.TP
+.B stroke -ctime mD=aD=cD=3 *.c
+Changing the day component of modification, access and change time of
+all the `*.c' files in the current directory to 3.
+.br
+.TP
+.B stroke -force mM=23,mD=101 <file>
+Normally, assigning month and date values erroneously as shown here would
+result in a failing date validation. But since `-force' is given,
+the faulty date given will be transfigured to a valid one.
+.br
+.TP
+.B stroke -c -s 0005132305.23/mac <file>
+Setting a files modification, access, and change time to the date
+indicated by the time stamp given.
+.br
+.TP
+.B find -name *.jpg | xargs stroke mM=aM=3
+Here the tools
+.BR xargs (1)
+and
+.BR find (1)
+are used to traverse the current directory tree.
+In this example, the month value
+of access and modification time of all `*.jpg' files in the current
+directory tree is changed to 3.
+.SH NOTES
+This section attempts to complement this manual by providing
+additional information that cannot be fittingly related in other places.
+.SS Invocation
+Upon invocation with no arguments other than its file argument,
+stroke updates the file's modification, access, and change time by
+setting them to the current time.
+.PP
+If FILE should be non-existent it
+gets created as an empty file; its time and date values are updated
+also. All of the this does also hold true if the options `-s, -stamp'
+or `-r, -reference' are given.
+.PP
+Consequently, modifier expressions in
+any fashion can only be applied to an already existing file.
+.SS Change time
+Even if change time alterations have been made through the use of
+modifiers, time stamps, or reference files, they are only then truly
+applied if the `-c, -ctime` option was given prior.
+.PP
+It is to be noted that in order for this to work root privileges might
+be necessary as is case with most systems.
+.PP
+Despite the fact of trying to circumvent 
+.B clock skews,
+they often do arise when a file's change time is modified due to
+the method used for altering them - they seem somewhat
+inavoidable.
+.SS Change time preservation
+Note that when altering modification or access time, a file's change
+time is implicitly changing to the value of the time when this
+alteration was taking place too; this is so because the notion of change
+time reflects the time when any last changes were made to a file's
+inode, which, of course, is the case when changing its modification or
+access time.
+.PP
+The most convenient method to remedy this automatic change time
+adaption is by giving the `-p, -preserve' option on the command
+line. Now, stroke attempts to preserve a file's change time beyond any
+alterations made to its modification or access time. Note that, as with `-c, -ctime', root privileges might also be required.
+.SS Modulators
+When modulators appear on the right-hand side of a chained assignment they
+are partially assigned to and singly evaluated against each of the
+identifiers in the assignment.
+.PP
+Here, on has to be cautioned: Although a modulator may seem fit
+for one of the partial assignments, an erroneous partial assignment
+will still result in invalidating the entire modifier expression.
+.SS "Batch files and stdin"
+Both methods of using
+.I batch files
+and having the ability to read modifier expressions from
+.I stdin
+are somewhat related to each other. Consider, for instance, the
+following two commands which yield the same result:
+.sp
+.RS
+.nf
+(1) cat batch.file > stroke - <file>
+.sp
+(2) stroke -b batch.file <file>
+.fi
+.RE
+.PP
+Instead of specifying `-b, -batch', making use of stdin can have many more versatile 
+applications however.
+.SS "Using `-f, -force'"
+Having `-force' in effect during the evaluation of an assignment which
+would exceed the  natural boundaries of the left-hand time or date
+value identifier will result in having the overall date normalized
+(e. g. mh=26 becomes mh=2 the next day).
+.SS Files
+The notion of "file" does also intrinsically lend itself to the
+concept of "directory" in Unix which is why - in this manual - both are taken to
+be synonyms of each other.
+.SH "RETURN VALUE"
+Upon successful completion stroke returns a value of 0 to the calling
+shell.
+.PP
+If an error occurs, a positive-valued error code is returned, which, assuming
+stroke had been invoked with `-v, -verbose', is the same that got displayed at the
+end of the most recent error message.
+.PP
+In case the program execution
+becomes fatally interrupted, an immediate abortion will be the result;
+an error code is returned likewise.
+.SH BUGS
+None the author is currently aware of.
+However, you are highly encouraged to help by reporting bugs to
+<soeren.wellhoefer@gmx.net>. You may also use the official bugtracker at SourceForge.
+.PP
+A bug report should loosely contain the following information: a
+simple description of the fault and the situation in which it occurs,
+program output and resulting error code if appropriate, directions on
+how to reproduce the bug. The concerning error code may be obtained by
+rerunning with `-v, -verbose'.
+.SH AUTHOR
+GNU stroke as well as this manual have been written by Soeren
+Wellhoefer <soeren.wellhoefer@gmx.net>
+.SH "SEE ALSO"
+.BR touch (1)

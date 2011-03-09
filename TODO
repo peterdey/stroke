@@ -1,0 +1,22 @@
+GNU stroke v. 0.1 - TODO
+========================
+
+This file records prospective changes or improvements in GNU usbsync that 
+are planned to be added or are currently undergoing implementation.
+
+  Copyright (C) 2009 Free Software Foundation, Inc.
+
+  Copying and distribution of this file, with or without modification,
+  are permitted in any medium without royalty provided the copyright
+  notice and this notice are preserved.
+
+
+TODO 
+^^^^ 
+ * Devise method to alter symlink times wihout using utimensat()
+
+ * Find a solution to change a symlink's change time for systems
+   not supporting the lchmod() system call
+
+ * Mitigate clock skew severity on change time modification
+
