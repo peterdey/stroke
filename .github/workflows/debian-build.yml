@@ -1,0 +1,151 @@
+name: Build Debian Packages
+
+on:
+  push:
+    branches:
+      - '**'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      package_version: ${{ steps.version.outputs.package_version }}
+      upstream_version: ${{ steps.version.outputs.upstream_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from changelog
+        id: version
+        run: |
+          deb_version=$(dpkg-parsechangelog -S Version)
+          upstream_version=${deb_version%-*}
+          echo "package_version=$deb_version" >> "$GITHUB_OUTPUT"
+          echo "upstream_version=$upstream_version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          expected="v${{ steps.version.outputs.package_version }}"
+          if [ "${{ github.ref_name }}" != "$expected" ]; then
+            echo "Tag ${{ github.ref_name }} does not match changelog version $expected" >&2
+            exit 1
+          fi
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mmdebstrap qemu-user-static debootstrap devscripts lintian debian-archive-keyring
+
+      - name: Create ${{ matrix.arch }} Buster chroot
+        run: |
+          sudo mmdebstrap --mode=root --architectures=${{ matrix.arch }} \
+            --variant=buildd --include=build-essential,devscripts,lintian,git,debhelper \
+            --aptopt='Acquire::Check-Valid-Until "false";' \
+            --aptopt='Acquire::AllowInsecureRepositories "true";' \
+            --aptopt='Acquire::AllowDowngradeToInsecureRepositories "true";' \
+            --keyring=/usr/share/keyrings/debian-archive-keyring.gpg \
+            buster build-root-${{ matrix.arch }} \
+            'deb http://archive.debian.org/debian buster main'
+
+      - name: Build inside chroot
+        run: |
+          sudo mkdir -p build-root-${{ matrix.arch }}/workspace
+          sudo rsync -a --delete \
+            --exclude='.git' \
+            --exclude='build-root-*' \
+            ./ build-root-${{ matrix.arch }}/workspace/src
+          sudo chroot build-root-${{ matrix.arch }} /bin/bash -c "\
+            set -euo pipefail; \\
+            cd /workspace/src; \\
+            tar --exclude=debian --exclude='.git' \\
+              --transform='s,^,stroke-${{ steps.version.outputs.upstream_version }}/,' \\
+              -czf ../stroke_${{ steps.version.outputs.upstream_version }}.orig.tar.gz .; \\
+            dpkg-buildpackage -B -us -uc"
+
+      - name: Build source package (amd64 only)
+        if: matrix.arch == 'amd64'
+        run: |
+          sudo chroot build-root-${{ matrix.arch }} /bin/bash -c "\
+            set -euo pipefail; \\
+            cd /workspace/src; \\
+            dpkg-buildpackage -S -us -uc"
+
+      - name: Fix workspace permissions
+        run: |
+          sudo chown -R $USER:$USER build-root-${{ matrix.arch }}/workspace
+
+      - name: Lintian
+        run: |
+          lintian -i --profile debian build-root-${{ matrix.arch }}/workspace/stroke_${{ steps.version.outputs.package_version }}_${{ matrix.arch }}.changes || true
+
+      - name: Upload binary package
+        uses: actions/upload-artifact@v4
+        with:
+          name: stroke_${{ steps.version.outputs.package_version }}_${{ matrix.arch }}.deb
+          path: build-root-${{ matrix.arch }}/workspace/stroke_${{ steps.version.outputs.package_version }}_${{ matrix.arch }}.deb
+          compression-level: 0
+
+      - name: Upload source dsc
+        if: matrix.arch == 'amd64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stroke_${{ steps.version.outputs.package_version }}.dsc
+          path: build-root-${{ matrix.arch }}/workspace/stroke_${{ steps.version.outputs.package_version }}.dsc
+          compression-level: 0
+
+      - name: Upload source tarball
+        if: matrix.arch == 'amd64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stroke_${{ steps.version.outputs.package_version }}.debian.tar.xz
+          path: build-root-${{ matrix.arch }}/workspace/stroke_${{ steps.version.outputs.package_version }}.debian.tar.xz
+          compression-level: 0
+
+      - name: Upload original tarball
+        if: matrix.arch == 'amd64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stroke_${{ steps.version.outputs.upstream_version }}.orig.tar.gz
+          path: build-root-${{ matrix.arch }}/workspace/stroke_${{ steps.version.outputs.upstream_version }}.orig.tar.gz
+          compression-level: 0
+
+  release:
+    needs: build
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: stroke_${{ needs.build.outputs.package_version }}*
+          path: release
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: stroke_${{ needs.build.outputs.upstream_version }}.orig.tar.gz
+          path: release
+          merge-multiple: true
+      - name: Upload binaries to release
+        if: >
+          (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')) ||
+          (github.event_name != 'release' && startsWith(github.ref_name, 'v'))
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/stroke_${{ needs.build.outputs.package_version }}_amd64.deb
+            release/stroke_${{ needs.build.outputs.package_version }}_arm64.deb
+            release/stroke_${{ needs.build.outputs.package_version }}.dsc
+            release/stroke_${{ needs.build.outputs.package_version }}.debian.tar.xz
+            release/stroke_${{ needs.build.outputs.upstream_version }}.orig.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
