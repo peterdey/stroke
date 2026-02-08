@@ -30,6 +30,7 @@
 #define LIBGENERAL_SIGNALS_H 1
 
 #include <setjmp.h>
+#include <signal.h>
 #include <ucontext.h>
 
 /* The catch signal macro; used in an application as an entry point if
@@ -50,4 +51,3 @@ extern siginfo_t *GET_SIGINFO();
 extern ucontext_t *GET_UCONTEXT();
 
 #endif /* LIBGENERAL_SIGNALS_H */
-
