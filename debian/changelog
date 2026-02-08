@@ -1,0 +1,7 @@
+stroke (0.1.4-1) unstable; urgency=medium
+
+  * Initial Debian re-package
+    - Original upstream package (stroke_0.1.3-1_i386.deb) was too outdated
+    - Provide watch file for SourceForge releases.
+
+ -- Peter Dey <debian@realmtech.net>  Sun, 08 Feb 2026 16:28:42 +0100

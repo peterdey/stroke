@@ -1,0 +1,17 @@
+Source: stroke
+Section: utils
+Priority: optional
+Maintainer: Peter Dey <debian@realmtech.net>
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.5.0
+Rules-Requires-Root: no
+Homepage: http://stroke.sourceforge.net
+
+Package: stroke
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: advanced timestamp editor for files
+ Stroke is a more flexible alternative to the traditional touch utility. It
+ allows individual fields of a file's access, modification, or change times to
+ be edited directly, can preserve timestamps from reference files, understands
+ symbolic links, and supports a batch language for complex operations.

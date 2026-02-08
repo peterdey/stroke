@@ -1,0 +1,3 @@
+version=4
+opts=filenamemangle=s%.*/stroke-(\d[\d\.]*)\.tar\.gz%stroke-$1.tar.gz/ \
+  https://sf.net/stroke/stroke-(\d[\d\.]*)\.tar\.gz
