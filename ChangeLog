@@ -1,10 +1,13 @@
+2026-02-08  Peter Dey  <github@realmtech.net>
+	* Release 0.1.4 with 64-bit signal handling fixes.
+
 2011-02-22  Soeren Wellhoefer  <soeren.wellhoefer@gmx.net>
 	* Various fixes
 
 2010-02-15  Soeren Wellhoefer  <soeren.wellhoefer@gmx.net>
 	* Various fixes
 
-2009-08-02  Soeren Wellhoefer  <soeren.wellhoefer@gmx.net>	
+2009-08-02  Soeren Wellhoefer  <soeren.wellhoefer@gmx.net>
 	* Fixed filename issues
 	* Revision of manual page
 
@@ -17,4 +20,3 @@ Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright
 notice and this notice are preserved.
-

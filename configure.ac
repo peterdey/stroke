@@ -9,7 +9,7 @@
 
 
 AC_PREREQ(2.61)
-AC_INIT([stroke],[0.1.3], [soeren.wellhoefer@gmx.net])
+AC_INIT([stroke],[0.1.4], [soeren.wellhoefer@gmx.net])
 AC_CONFIG_SRCDIR([src/stroke.h])
 
 #
@@ -136,5 +136,4 @@ by entering:
 > \`make'
 > \`sudo make install'
 ])
-
 
