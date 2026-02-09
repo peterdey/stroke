@@ -49,7 +49,7 @@ gl_INIT
 # Automake stuff
 #
 AM_PROG_CC_C_O
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 
 #
 # Checks for header files
@@ -136,4 +136,3 @@ by entering:
 > \`make'
 > \`sudo make install'
 ])
-

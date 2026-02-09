@@ -1,6 +1,0 @@
-stroke 0.1.4 (2026-02-08)
-------------------------
-
-* Fix 64-bit build failure by including <signal.h> in the
-  libgeneral signal shim.
-* Update metadata and documentation to reflect the new release.
