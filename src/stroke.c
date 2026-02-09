@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <getopt.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -38,6 +39,7 @@
 
 #include "stroke.h"
 #include "errors.h"
+#include "gnulib/parse-datetime.h"
 
 
 /***************
@@ -45,77 +47,25 @@
  ***************/
 
 const char *usg =
-	"Usage: "PROGRAM" [OPTION]... ARGUMENT FILE...\n"
-	"   or: "PROGRAM" [OPTION]... FILE...\n\n"
-	"Meaning of ARGUMENT may differ according to OPTION set.\n\n"
-	"      Option:   -s             ARGUMENT = STAMP\n"
-	"                -r or -b       ARGUMENT = FILE\n"
-	"                otherwise      ARGUMENT = MODIFIERS\n\n"
+	"Usage: "PROGRAM" [OPTIONS] FILE...\n\n"
+	"Without any setters stroke prints every timestamp for each FILE. Provide\n"
+	"one or more setters to modify them:\n\n"
+	"  -m, --mtime=SPEC      set modification time to SPEC\n"
+	"  -a, --atime=SPEC      set access time to SPEC\n"
+	"  -c, --ctime=SPEC      set change time to SPEC (requires root)\n"
+	"      --copy=FILE       copy all timestamps from FILE\n\n"
 	"Options:\n"
-	"      -s, -stamp         Treat ARGUMENT as a STAMP (see below).\n"
-	"      -r, -reference     Treat ARGUMENT as a reference file and set FILE's\n"
-	"                          access, modification, (and change) time to that of\n"
-	"                          reference.\n"
-	"      -l, -symlinks      If FILE or reference file (in case of `-r') refer\n"
-	"                          to a symbolic link, read access, modification and\n"
-	"                          change time from that link."
-#if defined(HAVE_LUTIME) || defined(HAVE_UTIMENSAT)
-	" Also, if FILE refers\n"
-	"                          to a symbolic link, alter that link's modification,\n"
-	"                          access, (and change) time.\n"
-#else
-	"\n"
-#endif
-	"      -c, -ctime         Do also apply change time alterations. This might\n"
-	"                          require root privileges.\n"
-	"      -p, -preserve      When altering modification or access time, prevent\n"
-	"                          change time from being implicitly altered too.\n"
-	"                          Root privileges might be required.\n"
-	"      -i, -info          Output information about a file's access, change,\n"
-	"                          and modification time.\n"
-	"      -b, -batch         Treat ARGUMENT as a batch file to read modifier\n"
-	"                          expressions from.\n"
-	"      -f, -force         Do not perform any date or time validations.\n"
-	"      -v, -verbose       Generate more verbose output.\n"
-	"      -q, -quiet         Do not generate any output, not even for errors;\n"
-	"                          only return value indicates exit status.\n"
-	"      -h, -help          Print this help text\n"
-	"      -version           Print program information\n\n"
-	"Modifers:\n"
-	"      MODIFIERS is a `,' or `;' separated list of modifier EXPRESSIONs:\n\n"
-	"                     EXPRESSION [,|; EXPRESSION]...\n\n"
-	"      An EXPRESSION is a simple or chained assignment of the form:\n\n"
-	"         IDENTIFIER [= IDENTIFIER]... = VALUE | IDENTIFIER | MODULATOR\n\n"
-	"      All IDENTIFIERs of an EXPRESSION are evaluated as if they were\n"
-	"       singly assigned the right-most statement.\n\n"
-	"      A VALUE is a positive integer value that is appropriate for an\n"
-	"       assignment's IDENTIFIER as it is.\n\n"
-	"      There are IDENTIFIERs for all components of access, modification,\n"
-	"       and change time:\n"
-	"                   [mac]Y     Year             [mac]h     Hour\n"
-	"                   [mac]M     Month            [mac]m     Minute\n"
-	"                   [mac]D     Day              [mac]s     Second\n"
-	"                   [mac]l     Dst (0..2)\n\n"
-	"      MODULATORs conveniently increment or decrement an IDENTIFIER's\n"
-	"      value:\n"
-	"                  +n     Increment by n       ++     Increment by 1\n"
-	"                  -n     Decrement by n       --     Decrement by 1\n\n"
-	"      If MODIFIERS is `-', modifier expressions shall be read from stdin.\n\n"
-	"Time stamps:\n"
-	"      STAMP must be supplied as ARGUMENT if `-s, -stamp' is given. STAMP\n"
-	"      is of the form:\n\n"
-	"                  [[CC]YY]MMDDhhmm[.ss][:SELECTOR]\n\n"
-	"      SELECTOR specifies whether access time, modification time, change time\n"
-	"       or any of those combined should be altered using STAMP.\n"
-	"       A SELECTOR is of the form: a, m, c (or any unique combination thereof).\n"
-	"       If not given as part of STAMP, SELECTOR defaults to m.\n\n"
-	"Examples:\n"
-	"       "PROGRAM" mY=aY=2008,mm=+2,am=mm <file>\n"
-	"       "PROGRAM" -c cY=mY,cM=mM,cD=mD <file>\n\n"
-	"Consult the manual page `stroke (1)' for more detailed information and\n"
-	" invocation examples.\n\n"
-	"\nPlease help by reporting bugs to <"PACKAGE_BUGREPORT">."
-	"\n\n";
+	"  -l, --symlinks        operate on symbolic links themselves\n"
+	"      --dry-run         validate changes without applying them\n"
+	"  -p, --preserve-ctime  preserve change time even when mutating other clocks\n"
+	"  -f, --force           skip sanity checks (dangerous)\n"
+	"  -q, --quiet           suppress per-file output\n"
+	"  -v, --verbose         emit additional diagnostics\n"
+	"      --help            show this help text\n"
+	"      --version         print program information\n\n"
+	"Timestamp SPEC accepts common ISO-8601 forms (e.g. 2024-02-01T13:37) or\n"
+	"relative expressions such as \"now -2 hours\" and \"+3days\".\n"
+	"\nPlease help by reporting bugs to <"PACKAGE_BUGREPORT">.\n\n";
 
 const char *pinf[] =
 	{"Dynamically altering modification, access, and change time components",
@@ -205,187 +155,122 @@ scan(const char *file)
 }
 
 
-/*
- * Evaluate modifier list and set values in time_vals table.
- * Return 0 on success, -1 on failure; issues error messages.
- */
-static int
-eval(const char **modifier_list)
+struct timestamp_param {
+	GENERAL_BOOL set;
+	struct timespec ts;
+};
+
+struct stroke_cli {
+	struct timestamp_param atime;
+	struct timestamp_param mtime;
+	struct timestamp_param ctime;
+	const char *copy_from;
+	GENERAL_BOOL dry_run;
+};
+
+static int parse_timestamp_spec(const char *spec, struct timespec *out);
+static int assign_timespec(FILE_TIMES ft, int slot, const struct timespec *ts);
+static int check_dry_run_permissions(const char *file, GENERAL_BOOL exists,
+				     GENERAL_BOOL will_touch_ctime,
+				     GENERAL_BOOL create_file);
+
+static void
+current_timespec(struct timespec *ts)
 {
-	const char *modifier, *idf, *prem, **mtokens;
-	int value, modulator;
-	register int t;
-
-	while((modifier = *modifier_list++)) {
-
-		verbose(1, VSPACE "Evaluating modifier expression `%s'",  0, modifier);
-		     
-		mtokens = (const char**)sep_to_array("=", modifier);
-		for(t = 0; mtokens[t]; t++);
-		modulator = 0;
-		
-		if(t-- < 2) {
-			error_out(ERROR_ERROR_INSUFA, 0, FLN, modifier);
-			goto error;
-		}
-
-		/* Right-hand expression: value, modulator, or identifier */
-		if(isnum(mtokens[t])) {			
-			value = atoi(mtokens[t]);
-#ifdef DEBUG			
-			verbose(1, VSPACE "Right-hand value is %d", 0, value);
-#endif			
-		}
-		else if((prem = strchr("+-", *mtokens[t]))) {
-			if(isnum(mtokens[t]+1))
-				modulator = atoi(mtokens[t]);
-			else if(*(mtokens[t]+1) == *prem) {
-				if(*prem == '+')
-					modulator = 1;
-				else
-					modulator = -1;
-			}
-			else {
-				error_out(ERROR_ERROR_MINVAL, 0, FLN, mtokens[t], modifier);
-				goto error;
-			}
-
-#ifdef DEBUG			
-			verbose(1, VSPACE "Right-hand token is value modulator `%s'", 0,
-				mtokens[t]);
-#endif			
-		}
-		else {
-			if(times_mod(time_vals, mtokens[t], &value, LOOKUP_VALUE) < 0) {
-				error_out(ERROR_ERROR_RESOLV, 0, FLN, mtokens[t], modifier);
-				goto error;
-			}
-			verbose(1, VSPACE "Right-hand identifier `%s' resolved to %d",
-				0, mtokens[t], value);
-		}
-
-		/* Remaining modifier expressions are partial assignments */
-		while(--t >= 0) {
-			
-			idf = mtokens[t];
-
-			/* When modulating read original value first */
-			if(modulator) {
-				if(times_mod(time_vals, idf, &value, LOOKUP_VALUE) < 0) {
-					error_out(ERROR_ERROR_MFIND, 0, FLN, idf, idf, modulator,
-						  modifier);
-					goto error;
-				}
-
-				verbose(1, VSPACE "Applying modulator `%d' to `%s=%d'", 0,
-					modulator, idf, value);
-				
-				value += modulator;
-			}
-
-			if(!validate(idf, value) ||
-			   times_mod(time_vals, idf, &value, SET_VALUE) < 0) {
-				
-				error_out(ERROR_ERROR_SETVAL, 0, FLN, idf, value, modifier);
-				goto error;
-			}
-
-			verbose(1, VSPACE "Partial assignment `%s=%d' made", 0, idf, value);
-		}
-
-		free_str_array((char ***)&mtokens);
-	}
-	
-	return 0;
-	
- error:
-	free_str_array((char ***)&mtokens);
-	return -1;
+#ifdef CLOCK_REALTIME
+	if(clock_gettime(CLOCK_REALTIME, ts) == 0)
+		return;
+#endif
+	ts->tv_sec = time(NULL);
+	ts->tv_nsec = 0;
 }
 
-/*
- * Evaluating time stamp of the form [[CC]YY]MMDDhhmm[.ss].
- * stp is an array of strings of size one or
- * two whose second element, if present, is a string containing 'm'
- * or 'a' which denote mtime or atime to be changed
- * respectively. Having no specifying element two in stp will
- * default to changing the mtime within the time_vals array.
- * Returns 0 on success, -1 on failure.
- */
 static int
-time_stamp(const char **stp)
+parse_timestamp_spec(const char *spec, struct timespec *out)
 {
-	const char *default_tv = "m", *tvs, *s;
-	int parse[TIME_VALS-2], tvidx;
-	register int i, j;
-	char buf[3];
+	struct timespec base;
+	current_timespec(&base);
+	if(!parse_datetime(out, spec, &base))
+		return -1;
 
-	verbose(1, "Evaluating time stamp expression `%s'", *stp);
-
-	if(*(s = *stp++) == '.')
-	   goto error;
-
-	/* Selector */
-	if(*stp && **stp) {
-		if(strlen((tvs = *stp)) > 3)
-			goto error;
-	} else
-		tvs = default_tv;
-	
-	memset(&parse, 0, sizeof parse);
-	memset(buf, '\0', sizeof buf);
-			
-	/* Optional seconds */
-	for( ; *s; s++) {
-		if(*s == '.') {
-			if(strlen(++s) != 2 || !isnum_zero(s, TRUE))
-				goto error;
-			parse[SEC] = atoi(s--);
-			break;
-		}
-	}
-
-	/* Parse from minute backwards */
-	for(i = MIN; s > stp[-1]; i--) {
-		
-		if((s -= 2) < stp[-1]) goto error;
-		
-		strncpy(buf, s, 2);
-		if(!isnum_zero(buf, TRUE)) goto error;
-
-		/* Century */
-		if(i < 0) {
-			parse[YEAR] += atoi(buf) * 100;
-		} else
-			parse[i] = atoi(buf);
-	}
-
-	if(i > YEAR) goto error;
-
-	/* Supplement century */
-	if(i == -1) parse[YEAR] += CURR_CENT * 100;
-		    
-	/* Copy values */
-	for( ; *tvs; tvs++) {
-		if((tvidx = tstr(tvs)) < 0)
-			goto error;
-
-		if(tvidx == CTIME) SETF(CTAPPLY);
-		
-		for(j = YEAR; j <= SEC; j++) {
-			if(!j && i >= 0) continue; /* Year not set */
-			time_vals[tvidx][j].val = parse[j];
-			
-			verbose(1, VSPACE "Assignment `%s=%d' made", 0,
-				time_vals[tvidx][j].name, parse[j]);
-		}
-	}
-	
 	return 0;
-	
- error:
-	error_out(ERROR_ERROR_TIMEST, 0, FLN, stp[-1], IFF(*stp, "-"));
-	return -1;
+}
+
+static int
+assign_timespec(FILE_TIMES ft, int slot, const struct timespec *ts)
+{
+	time_t sec = ts->tv_sec;
+	struct tm tm;
+
+	if(!localtime_r(&sec, &tm))
+		return -1;
+
+	translate(&tm, ft, slot, TO_FT);
+	return 0;
+}
+
+static char *
+parent_dir(const char *path, char *buf, size_t len)
+{
+	if(!path || !*path)
+		return NULL;
+
+	const char *slash = strrchr(path, '/');
+	if(!slash) {
+		if(len < 2)
+			return NULL;
+		strcpy(buf, ".");
+		return buf;
+	}
+
+	size_t dlen = slash - path;
+	if(dlen == 0)
+		dlen = 1;
+	if(dlen >= len)
+		return NULL;
+	memcpy(buf, path, dlen);
+	buf[dlen] = '\0';
+	return buf;
+}
+
+static int
+ensure_parent_writable(const char *file)
+{
+	char dirbuf[PATH_MAX];
+	const char *dir = parent_dir(file, dirbuf, sizeof(dirbuf));
+	if(!dir) dir = ".";
+
+	if(access(dir, W_OK) < 0) {
+		error_out(ERROR_ERROR_FCREATE, errno, FLN, file);
+		return -1;
+	}
+	return 0;
+}
+
+static int
+check_dry_run_permissions(const char *file, GENERAL_BOOL exists,
+			  GENERAL_BOOL will_touch_ctime,
+			  GENERAL_BOOL create_file)
+{
+	if(will_touch_ctime && geteuid() != 0) {
+		error_out(ERROR_ERROR_CHCTIME, EPERM, FLN, file,
+			  "change time modifications require root privileges");
+		return -1;
+	}
+
+	int rc;
+	if(exists) {
+		rc = CHKF(SYMLINKS) ? laccess(file, W_OK) : access(file, W_OK);
+		if(rc < 0) {
+			error_out(ERROR_ERROR_SETTIM, errno, FLN, file);
+			return -1;
+		}
+	} else if(create_file) {
+		if(ensure_parent_writable(file) < 0)
+			return -1;
+	}
+
+	return 0;
 }
 
 /*
@@ -408,7 +293,7 @@ apply(const char *file)
 	}
 	
 	/* ctime */
-	if(CHKF(CHCTIME) || CHKF(CTAPPLY) || CHKF(CTPRES)) {
+	if(CHKF(CTAPPLY) || CHKF(CTPRES)) {
 		if(mod_ctime(time_vals, file) < 0)
 			return -1;
 	}
@@ -477,259 +362,249 @@ void cleanups()
 }
 
 int
-main(int argc, char **argv)	
+main(int argc, char **argv)
 {
-	char *modifier_list, **modifiers;
-	char *arg, *file, *modifs;
 	sigset_t segv_mask;
-	FILE *batch;
 	int fd;
-	
-	/*
-	 * Initialization
-	 */
+	struct stroke_cli cli = {0};
+	GENERAL_BOOL preserve_ctime_requested = FALSE;
+	GENERAL_BOOL have_setters = FALSE;
+	FILE_TIME copy_template[TIME_TBLS][TIME_VALS];
+	GENERAL_BOOL have_copy_template = FALSE;
 
-	modifier_list = NULL;
-	modifiers = NULL;
-	modifs = NULL;
-	
+	static const struct option long_opts[] = {
+		{"mtime",   required_argument, NULL, 'm'},
+		{"atime",   required_argument, NULL, 'a'},
+		{"ctime",   required_argument, NULL, 'c'},
+		{"reference", required_argument, NULL, 'r'},
+		{"copy",    required_argument, NULL, 'r'},
+		{"symlinks",no_argument,       NULL, 'l'},
+		{"preserve-ctime", no_argument,NULL, 'p'},
+		{"force",   no_argument,       NULL, 'f'},
+		{"quiet",   no_argument,       NULL, 'q'},
+		{"verbose", no_argument,       NULL, 'v'},
+		{"dry-run", no_argument,       NULL, 1000},
+		{"help",    no_argument,       NULL, 'h'},
+		{"version", no_argument,       NULL, 1001},
+		{0,0,0,0}
+	};
+
 	libgeneral_init(PROGRAM, 0);
-	
 	libgeneral_init_errors(&error_messages, 0);
 	libgeneral_init_verbose(&verbosity_level, "verbose", 1);
-	
+
 	atexit(&cleanups);
 
 	sigfillset(&segv_mask);
 	SET_SIGNAL(SIGSEGV, &segv_mask, 0);
 
 	SIGNAL_CATCHING();
-		
 	CATCH_SIGNAL(SIGSEGV) {
 		error_out(ERROR_FATAL_SEGV, 0, FLN, GET_SIGINFO()->si_addr);
 	}
 
-	/*
-	 * Argument parsing
-	 */
-	
-	if(argc < 2) usage(0);
-	
-	/* Handle options (arg used by ARG()) */
-	while(--argc && *(arg = *++argv) == '-') {
-		
-		if(!*++arg) break; /* stdin - */
-		
-		if(ARG("h", "help"))
-			usage(0);
-		else if(ARG("f", "force"))
-			SETF(FORCE);
-		else if(ARG("l", "symlinks"))
+	int opt;
+	while((opt = getopt_long(argc, argv, "m:a:c:r:lpqvfh", long_opts, NULL)) != -1) {
+		switch(opt) {
+		case 'm':
+			if(parse_timestamp_spec(optarg, &cli.mtime.ts) < 0) {
+				error_out(ERROR_ERROR_INVTSP, 0, FLN, optarg);
+				return last_error_code;
+			}
+			cli.mtime.set = TRUE;
+			have_setters = TRUE;
+			break;
+		case 'a':
+			if(parse_timestamp_spec(optarg, &cli.atime.ts) < 0) {
+				error_out(ERROR_ERROR_INVTSP, 0, FLN, optarg);
+				return last_error_code;
+			}
+			cli.atime.set = TRUE;
+			have_setters = TRUE;
+			break;
+		case 'c':
+			if(parse_timestamp_spec(optarg, &cli.ctime.ts) < 0) {
+				error_out(ERROR_ERROR_INVTSP, 0, FLN, optarg);
+				return last_error_code;
+			}
+			cli.ctime.set = TRUE;
+			have_setters = TRUE;
+			break;
+		case 'r':
+			cli.copy_from = optarg;
+			have_setters = TRUE;
+			break;
+		case 'l':
 			SETF(SYMLINKS);
-		else if(ARG("i", "info"))
-			SETF(INFO);
-		else if(ARG("b", "batch"))
-			SETF(BATCH);
-		else if(ARG("s", "stamp"))
-			SETF(STAMP);
-		else if(ARG("r", "reference"))
-			SETF(REFER);
-		else if(ARG("c", "ctime"))
-			SETF(CHCTIME);
-		else if(ARG("p", "preserve"))
-			SETF(CTPRES);
-		else if(ARG("q", "quiet")) {
+			break;
+		case 'p':
+			preserve_ctime_requested = TRUE;
+			break;
+		case 'f':
+			SETF(FORCE);
+			break;
+		case 'q':
 			SETF(QUIET);
 			libgeneral_set_flag(OPTION_QUIET);
-		}
-		else if(ARH("version"))
-			info();
-		else if(ARG("v", "verbose")) {	
+			break;
+		case 'v':
 			SETF(VERBOSE);
 			libgeneral_set_flag(OPTION_ERROR_CODE_ON_ERROR);
-#ifdef DEBUG			
+#ifdef DEBUG
 			libgeneral_set_flag(OPTION_ERRORS_POINT_TO_SOURCE);
 #endif
+			break;
+		case 'h':
+			usage(0);
+			break;
+		case 1000: /* --dry-run */
+			cli.dry_run = TRUE;
+			break;
+		case 1001: /* --version */
+			info();
+			break;
+		default:
+			error_out(ERROR_ERROR_UKNARG, 0, FLN, argv[optind-1]);
+			return last_error_code;
 		}
-		else {
-			error_out(ERROR_ERROR_UKNARG, 0, FLN, --arg);
-			usage(1);
-		}
 	}
 
-	/* `-p' and `-c' */ 
-	if(CHKF(CTPRES) && CHKF(CHCTIME)) {
-		error_out(ERROR_ERROR_CTPRES, 0, FLN);
-		usage(1);
-	}
-
-	/* `i' and `-r' or `-s' or `-b' */
-	if(CHKF(INFO) && (CHKF(REFER) ||  CHKF(STAMP) || CHKF(BATCH))) {
-		error_out(ERROR_ERROR_INVCOMB, 0, FLN);
-		usage(1);
-	}
-
-	/* Number of args validations */
-	if(argc < 1) {
-		error_out(ERROR_ERROR_INSUFARGS, 0, FLN);
-		usage(1);
-	} else if(argc < 2 && CHKF(BATCH | STAMP | REFER)) {
-		if(CHKF(BATCH))
-			error_out(ERROR_ERROR_BATCHF, 0, FLN);
-		else
-			error_out(ERROR_ERROR_MODFIL, 0, FLN);
-		usage(1);
-	}
-
-	/* Fixme: Filename containing '='? */
-	modifs = strchr(*argv, '=');
-	
-	if(modifs && CHKF(INFO)) {
-		error_out(ERROR_ERROR_INFMODF, 0, FLN);
-		goto error;
-	}
+	(void)tzset();
 
 	if(verbosity_level() && CHKF(FORCE))
 		error_out(ERROR_WARNING_FORCVAL, 0, FLN);
 
-	/*
-	 * Obtain modifier expressions, time stamps, or reference file
-	 */
-	if(modifs || CHKF(STAMP) || CHKF(REFER) || CHKF(BATCH) || **argv == '-') {
-		/* batch, stdin, normal */
-		if(CHKF(BATCH)) {
-			verbose(1, "Opening batch file: \"%s\"", *argv);
-			if(!(batch = fopen(*argv, "r"))) {
-				error_out(ERROR_ERROR_FOPEN, errno, FLN, *argv);
-				goto error;
-			}
-			modifier_list = read_batch(batch);
-			fclose(batch);
-		} else if (**argv == '-') {
-			verbose(1, "Reading modifier list from stdin");
-			modifier_list = read_batch(stdin);
-		}
-		else
-			modifier_list = *argv;
-	
-		modifiers = sep_to_array(MODSEPS, skew(modifier_list));
-
-		(void)read_batch(NULL);
-
-		if(!modifiers || !*modifiers || !**modifiers) {
-			error_out(ERROR_ERROR_INVMOD, 0, FLN);
-			goto error;
-		}
-
-		file = *++argv, --argc;
-	} else
-		file = *argv;
-
-	(void)tzset();
-
-	/*
-	 * Scanning reference file or current time
-	 */
-	if(CHKF(REFER)) {
-		verbose(1, "Scanning reference file \"%s\"", *modifiers);
-		if(scan(*modifiers) < 0)
-			goto error;
-	} else if(!CHKF(INFO)) {
-		verbose(1, "Retrieving current time");
-		if(scan(NULL) < 0)
-			goto error;
+	if(optind >= argc) {
+		error_out(ERROR_ERROR_INSUFARGS, 0, FLN);
+		usage(1);
 	}
 
-	/*
-	 * Handle file(s)
-	 */
-	for( ; argc-- > 0; file = *++argv, REMF(NEXIST)) {
-		
-		if(!file || !*file) {
-			error_out(ERROR_ERROR_INVFIL, 0, FLN);
-			usage(1);
-		}
+	if(preserve_ctime_requested && (cli.copy_from || cli.ctime.set)) {
+		error_out(ERROR_ERROR_CTPRES, 0, FLN);
+		return last_error_code;
+	}
 
-		/* If `-l', file exists as link even if dangling */
+	if(cli.copy_from) {
+		if(scan(cli.copy_from) < 0)
+			return last_error_code;
+		memcpy(copy_template, time_vals, sizeof(copy_template));
+		have_copy_template = TRUE;
+	}
+
+	for(int idx = optind; idx < argc; ++idx) {
+		const char *file = argv[idx];
+		GENERAL_BOOL exists;
+
 		if(CHKF(SYMLINKS)) {
 			if(laccess(file, F_OK) < 0 && access(file, F_OK) < 0)
-				SETF(NEXIST);
+				exists = FALSE;
+			else
+				exists = TRUE;
 		} else {
-			if(access(file, F_OK) < 0)
-				SETF(NEXIST);
+			exists = (access(file, F_OK) == 0);
 		}
 
-		/*
-		 * Scanning file
-		 */
-		
-		if(CHKF(REFER)) {
-			goto apply;
-		} else if(!CHKF(NEXIST) && (modifiers || CHKF(INFO))) {
-			verbose(1, "Scanning file \"%s\"", file);
-			if(scan(file) < 0 || validate_times(time_vals) < 0)
-				goto error;
-		}
+		if(exists)
+			REMF(NEXIST);
+		else
+			SETF(NEXIST);
 
-		if(CHKF(INFO)) {
-			times_info(file);
+		REMF(CTAPPLY);
+
+		if(!have_setters) {
+			if(exists && scan(file) < 0)
+				return last_error_code;
+			if(!CHKF(QUIET))
+				times_info(file);
 			continue;
 		}
-	
-		/*
-		 * Evaluating
-		 */
-	
-		/* Time stamp and modifier expression list evaluation */
-		if(CHKF(STAMP)) {
-			if(str_array_size((const char**)modifiers) > 2) {
-				error_out(ERROR_ERROR_INVTSP, 0, FLN, modifier_list);
-				goto error;
-			}
-			if(time_stamp((const char**)modifiers) < 0)
-				goto error;
-		} else if(modifiers) {
-			if(eval((const char**)modifiers) < 0)
-				goto error;
+
+		if(have_copy_template) {
+			memcpy(time_vals, copy_template, sizeof(copy_template));
+			SETF(CTAPPLY);
+		} else if(!exists) {
+			if(scan(NULL) < 0)
+				return last_error_code;
+		} else {
+			if(scan(file) < 0)
+				return last_error_code;
 		}
-	
-		/*
-		 * Applying
-		 */
-	apply:
-	
+
+		if(cli.mtime.set) {
+			if(assign_timespec(time_vals, MTIME, &cli.mtime.ts) < 0) {
+				error_out(ERROR_ERROR_GMTIM, errno, FLN, file);
+				return last_error_code;
+			}
+		}
+
+		if(cli.atime.set) {
+			if(assign_timespec(time_vals, ATIME, &cli.atime.ts) < 0) {
+				error_out(ERROR_ERROR_GMTIM, errno, FLN, file);
+				return last_error_code;
+			}
+		}
+
+		if(cli.ctime.set) {
+			if(assign_timespec(time_vals, CTIME, &cli.ctime.ts) < 0) {
+				error_out(ERROR_ERROR_GMTIM, errno, FLN, file);
+				return last_error_code;
+			}
+			SETF(CTAPPLY);
+		}
+
+		GENERAL_BOOL run_preserve =
+			preserve_ctime_requested &&
+			(cli.mtime.set || cli.atime.set);
+
+		if(run_preserve)
+			SETF(CTPRES);
+		else
+			REMF(CTPRES);
+
 		if(validate_times(time_vals) < 0)
-			goto error;
-	
-		/* Create file if necessary */
-		if(CHKF(NEXIST) && (!modifiers || CHKF(STAMP | REFER))) {
-			if((fd = open(file, O_CREAT | O_WRONLY | O_TRUNC,
-				      S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
-				error_out(ERROR_ERROR_FCREATE, errno, FLN, file);
-				goto error;
+			return last_error_code;
+
+		GENERAL_BOOL need_ctime = CHKF(CTAPPLY) || CHKF(CTPRES);
+
+		if(cli.dry_run) {
+			if(check_dry_run_permissions(file, exists, need_ctime, CHKF(NEXIST)) < 0)
+				return last_error_code;
+		} else {
+			if(CHKF(NEXIST)) {
+				if((fd = open(file, O_CREAT | O_WRONLY | O_TRUNC,
+					      S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
+					error_out(ERROR_ERROR_FCREATE, errno, FLN, file);
+					return last_error_code;
+				}
+				close(fd);
+				REMF(NEXIST);
+				verbose(1, "File created: \"%s\"", IFF(realname(file), "-"));
+				exists = TRUE;
 			}
-			close(fd);
-			verbose(1, "File created: \"%s\"", IFF(realname(file), "-"));
+
+			if(apply(file) < 0)
+				return last_error_code;
+
+			if(scan(file) < 0)
+				return last_error_code;
 		}
-		
-		if(apply(file) < 0)
-			goto error;
+
+		if(!cli.dry_run && CHKF(QUIET))
+			continue;
+		if(cli.dry_run && CHKF(QUIET))
+			continue;
+
+		GENERAL_BOOL cleared = FALSE;
+		if(cli.dry_run && CHKF(NEXIST)) {
+			REMF(NEXIST);
+			cleared = TRUE;
+		}
+
+		times_info(file);
+
+		if(cleared)
+			SETF(NEXIST);
 	}
-	
-	free_str_array(&modifiers);
+
 	return 0;
-
-	/*
-	 * Error handling
-	 */
- error:
-	
-#ifdef DEBUG
-	dump_tv(time_vals);
-	dump_str_array((const char**)modifiers);
-#endif
-	
-	free_str_array(&modifiers);
-	return last_error_code;
 }
-

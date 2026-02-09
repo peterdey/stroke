@@ -97,20 +97,4 @@ inline void dump_tv(FILE_TIME (*time_vals)[TIME_VALS])
 	if(verbosity_level()) dump_time_vals(time_vals);
 }
 
-/*
- * Dump array of strings (tokens).
- * Used for modifier list and modifier
- * expression debugging.
- */
-void dump_str_array(const char** arr)
-{
-	const char *str;
-	if(!arr || !*arr) return;
-	if(verbosity_level()) {
-		msg("Dumping modifiers:");
-		while((str = *arr++))
-			dumpstr(STR, "str", 7, str);
-	}
-}
-
 #endif

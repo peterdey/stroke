@@ -70,18 +70,13 @@ size_t strlen(const char *);
 
 /* Possible program flags */
 enum {
-	FORCE = _FLAG(0),
+	FORCE   = _FLAG(0),
 	VERBOSE = _FLAG(1),
-	SYMLINKS = _FLAG(2),
-	QUIET = _FLAG(3),
-	INFO = _FLAG(4),
-	BATCH = _FLAG(5),
-	STAMP = _FLAG(6),
-	REFER = _FLAG(7),
-	NEXIST = _FLAG(8),
-	CHCTIME = _FLAG(9),
-	CTPRES = _FLAG(10),
-	CTAPPLY = _FLAG(11),
+	SYMLINKS= _FLAG(2),
+	QUIET   = _FLAG(3),
+	NEXIST  = _FLAG(4),
+	CTPRES  = _FLAG(5),
+	CTAPPLY = _FLAG(6),
 };
 
 /* Time table values */
@@ -129,27 +124,16 @@ enum {
 #define CURR_CENT 20
 #define MON_BASE 1
 #define DST_BASE 1
-#define MODSEPS ",;:"
 #define DATE_FORMAT \
 	"%02d/%02d/%d-%02d:%02d:%02d %s (%cdst)",\
 	D(MON), D(DAY), D(YEAR),\
 	D(HOUR), D(MIN), D(SEC),\
 	W(D(WKD)), L(D(DST))
 
-/* Macros for times_mod(), translate(), and laccess() */
-#define SET_VALUE 0
-#define LOOKUP_VALUE 1
+/* Macros for translate() and laccess() */
 #define TO_TM 0
 #define TO_FT 1
 #define LDANGLING 1
-
-/*
- * Auxilary functional macros
- */
-
-/* Arguments */
-#define ARG(SHORT, LONG) (ARH(SHORT) || ARH(LONG))
-#define ARH(ARG) (!strcmp(ARG, arg))
 
 /* Flags */
 #define SETF(FLAG) flags |= (FLAG)
@@ -178,20 +162,11 @@ extern const char *names[];
 /*
  * Function declarations
  */
-extern char** sep_to_array(const char *seps, const char *str);
-extern void free_str_array(char ***strs);
 extern void translate(struct tm *tm, FILE_TIMES, int mactime, GENERAL_BOOL to_file_time);
-extern int times_mod(FILE_TIMES, const char *name, int *val, GENERAL_BOOL lookup);
 extern inline GENERAL_BOOL validate(const char *name, int val);
 extern int validate_times(FILE_TIMES);
 extern char* tv_to_str(FILE_TIMES, int t);
-extern inline GENERAL_BOOL isnum(const char *str);
-extern GENERAL_BOOL isnum_zero(const char *str, GENERAL_BOOL with_null);
 extern int ft_to_utimbuf(FILE_TIMES, struct utimbuf *);
-extern char* skew(char *a);
-extern char* read_batch(FILE *st);
-extern inline int tstr(const char *);
-extern inline int str_array_size(const char **);
 extern int lutime_symlink(const char *filename, const struct utimbuf *times);
 extern int laccess(const char *pathname, int mode);
 extern const char* realname(const char *file);
@@ -204,7 +179,6 @@ extern inline int verbosity_level();
 
 #ifdef DEBUG
 extern inline void dump_tv(FILE_TIME (*)[]);
-extern void dump_str_array(const char**);
 #endif
 
 #endif /* STROKE_H */

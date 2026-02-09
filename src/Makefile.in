@@ -116,7 +116,8 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__objects_1 =
-am__objects_2 = aux.$(OBJEXT) errors.$(OBJEXT) stroke.$(OBJEXT)
+am__objects_2 = aux.$(OBJEXT) errors.$(OBJEXT) stroke.$(OBJEXT) \
+	parse-datetime.$(OBJEXT) timespec-extra.$(OBJEXT)
 am_stroke_OBJECTS = $(am__objects_1) $(am__objects_2)
 stroke_OBJECTS = $(am_stroke_OBJECTS)
 stroke_DEPENDENCIES = libgeneral/libgeneral.a \
@@ -137,8 +138,13 @@ DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/aux.Po ./$(DEPDIR)/errors.Po \
-	./$(DEPDIR)/stroke.Po
+	./$(DEPDIR)/parse-datetime.Po ./$(DEPDIR)/stroke.Po \
+	./$(DEPDIR)/timespec-extra.Po
 am__mv = mv -f
+AM_V_lt = $(am__v_lt_@AM_V@)
+am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+am__v_lt_0 = --silent
+am__v_lt_1 = 
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 AM_V_CC = $(am__v_CC_@AM_V@)
@@ -396,7 +402,7 @@ top_srcdir = @top_srcdir@
 
 # Source files
 stroke_headers = stroke.h errors.h
-stroke_sources = aux.c errors.c stroke.c
+stroke_sources = aux.c errors.c stroke.c gnulib/parse-datetime.c gnulib/timespec-extra.c
 stroke_SOURCES = $(stroke_headers) $(stroke_sources)
 
 # Libraries
@@ -404,7 +410,10 @@ SUBDIRS = libgeneral
 stroke_LDADD = libgeneral/libgeneral.a $(top_builddir)/lib/libgnu.a
 
 # Preprocessor flags
-AM_CPPFLAGS = $(EXTRA_FLAGS) -Ilibgeneral -I$(top_srcdir)/lib
+AM_CPPFLAGS = $(EXTRA_FLAGS) -Ilibgeneral -I$(top_srcdir)/lib -I$(srcdir)/gnulib
+
+# Ensure we can rely on C11 features
+AM_CFLAGS = -std=gnu11
 all: all-recursive
 
 .SUFFIXES:
@@ -493,7 +502,9 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aux.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/errors.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parse-datetime.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stroke.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timespec-extra.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -514,6 +525,34 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+parse-datetime.o: gnulib/parse-datetime.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT parse-datetime.o -MD -MP -MF $(DEPDIR)/parse-datetime.Tpo -c -o parse-datetime.o `test -f 'gnulib/parse-datetime.c' || echo '$(srcdir)/'`gnulib/parse-datetime.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/parse-datetime.Tpo $(DEPDIR)/parse-datetime.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gnulib/parse-datetime.c' object='parse-datetime.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o parse-datetime.o `test -f 'gnulib/parse-datetime.c' || echo '$(srcdir)/'`gnulib/parse-datetime.c
+
+parse-datetime.obj: gnulib/parse-datetime.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT parse-datetime.obj -MD -MP -MF $(DEPDIR)/parse-datetime.Tpo -c -o parse-datetime.obj `if test -f 'gnulib/parse-datetime.c'; then $(CYGPATH_W) 'gnulib/parse-datetime.c'; else $(CYGPATH_W) '$(srcdir)/gnulib/parse-datetime.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/parse-datetime.Tpo $(DEPDIR)/parse-datetime.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gnulib/parse-datetime.c' object='parse-datetime.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o parse-datetime.obj `if test -f 'gnulib/parse-datetime.c'; then $(CYGPATH_W) 'gnulib/parse-datetime.c'; else $(CYGPATH_W) '$(srcdir)/gnulib/parse-datetime.c'; fi`
+
+timespec-extra.o: gnulib/timespec-extra.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT timespec-extra.o -MD -MP -MF $(DEPDIR)/timespec-extra.Tpo -c -o timespec-extra.o `test -f 'gnulib/timespec-extra.c' || echo '$(srcdir)/'`gnulib/timespec-extra.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/timespec-extra.Tpo $(DEPDIR)/timespec-extra.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gnulib/timespec-extra.c' object='timespec-extra.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o timespec-extra.o `test -f 'gnulib/timespec-extra.c' || echo '$(srcdir)/'`gnulib/timespec-extra.c
+
+timespec-extra.obj: gnulib/timespec-extra.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT timespec-extra.obj -MD -MP -MF $(DEPDIR)/timespec-extra.Tpo -c -o timespec-extra.obj `if test -f 'gnulib/timespec-extra.c'; then $(CYGPATH_W) 'gnulib/timespec-extra.c'; else $(CYGPATH_W) '$(srcdir)/gnulib/timespec-extra.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/timespec-extra.Tpo $(DEPDIR)/timespec-extra.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gnulib/timespec-extra.c' object='timespec-extra.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o timespec-extra.obj `if test -f 'gnulib/timespec-extra.c'; then $(CYGPATH_W) 'gnulib/timespec-extra.c'; else $(CYGPATH_W) '$(srcdir)/gnulib/timespec-extra.c'; fi`
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run 'make' without going through this Makefile.
@@ -716,7 +755,9 @@ clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 distclean: distclean-recursive
 		-rm -f ./$(DEPDIR)/aux.Po
 	-rm -f ./$(DEPDIR)/errors.Po
+	-rm -f ./$(DEPDIR)/parse-datetime.Po
 	-rm -f ./$(DEPDIR)/stroke.Po
+	-rm -f ./$(DEPDIR)/timespec-extra.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -764,7 +805,9 @@ installcheck-am:
 maintainer-clean: maintainer-clean-recursive
 		-rm -f ./$(DEPDIR)/aux.Po
 	-rm -f ./$(DEPDIR)/errors.Po
+	-rm -f ./$(DEPDIR)/parse-datetime.Po
 	-rm -f ./$(DEPDIR)/stroke.Po
+	-rm -f ./$(DEPDIR)/timespec-extra.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
