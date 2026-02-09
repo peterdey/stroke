@@ -1,52 +1,74 @@
 # Stroke
 
-Stroke is a command‑line utility for editing the individual components
-of a file's access time (`atime`), modification time (`mtime`) and 
-change time (`ctime`).
+Stroke is a focused command-line utility for inspecting and editing the
+individual components of a file's access time (`atime`), modification time
+(`mtime`) and change time (`ctime`). It complements `touch(1)` by letting you
+see every timestamp in one shot, copy clocks from a reference file, and set
+precise values via familiar ISO-8601 or relative expressions ("now -2 hours",
+"2024-01-01T12:00Z", "@1700000000", ...).
 
-It complements the classic `touch` utility by letting you:
+Run `stroke` with no setters to inspect files. Add one or more setters to
+switch into mutation mode:
 
-- Copy timestamps from one file to any number of targets.
-- Set exact timestamps with second‑level precision.
-- Tweak only selected components (for example “add two hours to ctime”).
+```
+stroke [OPTIONS] FILE...
+  -m, --mtime=SPEC      set modification time
+  -a, --atime=SPEC      set access time
+  -c, --ctime=SPEC      set change time (root/CAP_SYS_TIME required)
+      --copy=REF        copy all clocks from REF (setters override)
+      --dry-run         validate changes without touching the files
+  -l, --symlinks        operate on symlinks rather than targets
+  -p, --preserve-ctime  keep ctime stable while editing mtime/atime
+  -q, --quiet           suppress the per-file report
+  -v, --verbose         extra diagnostics
+```
 
-The full behaviour of every option is documented in `man stroke`.
+All setters accept the GNU `parse-datetime` grammar: relative offsets
+(`now +3days`), natural-language shorthands, explicit epochs (`@123`),
+structured timestamps, and numeric UTC offsets
+(`2026-01-02 23:01:22 +0100`). Named zones (`Europe/Berlin`, `PST`, etc.)
+fall back to the host's local timezone on older libcs, so prefer explicit
+offsets or UTC literals when the zone matters.
 
 ## Features at a glance
 
-- Works on both symbolic links and regular files (`-l/--symlinks`).
-- Can adjust change time (with the necessary privileges - i.e. root) or 
-  preserve it while modifying other times.
-- Supports batch files and `stdin` so that complex modifier expressions can be
-  scripted and reused.
+- Read-only by default: `stroke file ...` prints all timestamps and exits.
+- Clean setters: `-m/-a/-c` are always assignments; no more overloaded grammar.
+- `--copy=REF` mirrors all clocks from another path, and you can override
+  individual components (e.g. `--copy ref -m 'now'`).
+- `--dry-run` performs every validation (permissions, parse errors, ctimes)
+  and prints the post-change report without touching disk.
+- Works on regular files or symbolic links (`-l/--symlinks`).
+- Keeps the classic "preserve ctime while touching mtime/atime" behaviour when
+  `--preserve-ctime` is supplied and you have the necessary privilege.
 
 ## Usage examples
 
 Inspect timestamps:
 
 ```bash
-stroke -i /path/to/file
+stroke my.log /var/www/html/index.html
 ```
 
 Copy all timestamps from one file to another:
 
 ```bash
-stroke -r reference.img target.iso
+stroke --copy=reference.img target.iso
 ```
 
 Apply a timestamp literal to multiple files:
 
 ```bash
-stroke -s 202401011200 target1 target2
+stroke --mtime '2024-01-01 12:00' target1 target2
 ```
 
-Use modifier expressions for fine‑grained tweaks:
+Use relative expressions and overrides:
 
 ```bash
-stroke mY=aY=2024,mM=aM=+1 my.log
+stroke --copy backup.tar --mtime 'now -2h' --dry-run *.tar
 ```
 
-For every option and the complete grammar, run `man stroke`.
+For every option and supported timestamp format, run `man stroke`.
 
 ### About ctime modifications
 

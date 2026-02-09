@@ -17,9 +17,59 @@ License: GPL-3
  On Debian systems, the complete text of the GNU General Public License
  version 3 can be found in /usr/share/common-licenses/GPL-3.
 
+Files: src/gnulib/parse-datetime.c
+       src/gnulib/parse-datetime.h
+Copyright: 1999-2026 Free Software Foundation, Inc.
+License: GPL-3+
+
+Files: src/gnulib/c-ctype.h
+       src/gnulib/gettext.h
+       src/gnulib/idx.h
+       src/gnulib/intprops.h
+       src/gnulib/intprops-internal.h
+       src/gnulib/timespec.h
+       src/gnulib/arg-nonnull.h
+       src/gnulib/stdckdint.h
+Copyright: 2000-2026 Free Software Foundation, Inc.
+License: LGPL-2.1+
+
+Files: src/gnulib/gl-compat.h
+       src/gnulib/tz-compat.h
+       src/gnulib/timespec-extra.c
+Copyright: 2026 Peter Dey <debian@realmtech.net>
+License: GPL-3
+
 Files: debian/*
 Copyright: 2026 Peter Dey <debian@realmtech.net>
 License: GPL-3
  The Debian packaging is licensed under the GNU General Public License
  version 3.  On Debian systems, the complete text of the GNU General
  Public License version 3 can be found in /usr/share/common-licenses/GPL-3.
+
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ can be found in /usr/share/common-licenses/GPL-3.
+
+License: LGPL-2.1+
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public License
+ as published by the Free Software Foundation; either version 2.1
+ of the License, or (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public
+ License can be found in /usr/share/common-licenses/LGPL-2.1.
