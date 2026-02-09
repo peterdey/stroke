@@ -173,6 +173,7 @@ static int assign_timespec(FILE_TIMES ft, int slot, const struct timespec *ts);
 static int check_dry_run_permissions(const char *file, GENERAL_BOOL exists,
 				     GENERAL_BOOL will_touch_ctime,
 				     GENERAL_BOOL create_file);
+static GENERAL_BOOL have_ctime_privileges(void);
 
 static void
 current_timespec(struct timespec *ts)
@@ -273,6 +274,12 @@ check_dry_run_permissions(const char *file, GENERAL_BOOL exists,
 	return 0;
 }
 
+static GENERAL_BOOL
+have_ctime_privileges(void)
+{
+	return geteuid() == 0;
+}
+
 /*
  * Apply time stamps in time_vals array to file.
  * Returns 0 on success, -1 on failure.
@@ -288,7 +295,10 @@ apply(const char *file)
 	
 	/* mtime, atime */
 	if(ft_to_utimbuf(time_vals, &ut) < 0 || (*utimef)(file, &ut) < 0) {
-		error_out(ERROR_ERROR_SETTIM, errno, FLN, file);
+		if(errno == EPERM || errno == EACCES)
+			error_out(ERROR_ERROR_SETTIM_PERM, errno, FLN, file);
+		else
+			error_out(ERROR_ERROR_SETTIM, errno, FLN, file);
 		return -1;
 	}
 	
@@ -484,11 +494,26 @@ main(int argc, char **argv)
 		return last_error_code;
 	}
 
+	GENERAL_BOOL have_ctime_priv = have_ctime_privileges();
+	GENERAL_BOOL copy_ctime_skipped = FALSE;
+
+	if(cli.ctime.set && !have_ctime_priv) {
+		error_out(ERROR_ERROR_CTPRIV, 0, FLN, "--ctime");
+		return last_error_code;
+	}
+
+	if(preserve_ctime_requested && !have_ctime_priv) {
+		error_out(ERROR_ERROR_CTPRIV, 0, FLN, "--preserve-ctime");
+		return last_error_code;
+	}
+
 	if(cli.copy_from) {
 		if(scan(cli.copy_from) < 0)
 			return last_error_code;
 		memcpy(copy_template, time_vals, sizeof(copy_template));
 		have_copy_template = TRUE;
+		if(!have_ctime_priv)
+			copy_ctime_skipped = TRUE;
 	}
 
 	for(int idx = optind; idx < argc; ++idx) {
@@ -521,7 +546,10 @@ main(int argc, char **argv)
 
 		if(have_copy_template) {
 			memcpy(time_vals, copy_template, sizeof(copy_template));
-			SETF(CTAPPLY);
+			if(have_ctime_priv)
+				SETF(CTAPPLY);
+			else
+				REMF(CTAPPLY);
 		} else if(!exists) {
 			if(scan(NULL) < 0)
 				return last_error_code;
@@ -602,9 +630,12 @@ main(int argc, char **argv)
 
 		times_info(file);
 
-		if(cleared)
-			SETF(NEXIST);
-	}
+	if(cleared)
+		SETF(NEXIST);
+}
+
+	if(copy_ctime_skipped)
+		error_out(ERROR_WARNING_CTCOPY, 0, FLN);
 
 	return 0;
 }

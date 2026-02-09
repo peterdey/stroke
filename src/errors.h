@@ -30,6 +30,7 @@ enum {
 	
 	/* Warnings 100 to 199 */
 	ERROR_WARNING_FORCVAL = 101,
+	ERROR_WARNING_CTCOPY = 102,
 	
 	/* Normal errors 200 and beyond */
 	ERROR_ERROR_INSUFARGS = 201,
@@ -60,6 +61,8 @@ enum {
 	ERROR_ERROR_INVCOMB = 227,
 	ERROR_ERROR_INFMODF = 228,
 	ERROR_ERROR_FCREATE = 229,
+	ERROR_ERROR_CTPRIV = 230,
+	ERROR_ERROR_SETTIM_PERM = 231,
 };
 
 /* Array of error messages; used by libgeneral; initialized in errors.c */

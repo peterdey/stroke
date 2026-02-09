@@ -33,6 +33,7 @@ ERROR_MESSAGE error_messages[] = {
 				   "Please report this bug to <"PACKAGE_BUGREPORT">"),
 	/* Warnings */
 	EM_INIT(ERROR_WARNING_FORCVAL, "Date validations skipped"),
+	EM_INIT(ERROR_WARNING_CTCOPY, "Change time was not copied because root or CAP_SYS_TIME privileges are required"),
 
 	/* Normal errors */
 	EM_INIT(ERROR_ERROR_INSUFARGS, "Insufficient command line arguments supplied"),
@@ -67,6 +68,8 @@ ERROR_MESSAGE error_messages[] = {
 	EM_INIT(ERROR_ERROR_INVCOMB, "Invalid option in combination with `-i, -info'"),
 	EM_INIT(ERROR_ERROR_INFMODF, "Modifier expression list given together with `-i, -info'"),
 	EM_INIT(ERROR_ERROR_FCREATE, "Unable to create file: \"%s\""),
+	EM_INIT(ERROR_ERROR_CTPRIV, "Option `%s' requires root or CAP_SYS_TIME privileges"),
+	EM_INIT(ERROR_ERROR_SETTIM_PERM, "Insufficient permissions to modify: \"%s\""),
 	
 	ZERO_SENTINEL
 };
