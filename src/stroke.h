@@ -125,8 +125,8 @@ enum {
 #define MON_BASE 1
 #define DST_BASE 1
 #define DATE_FORMAT \
-	"%02d/%02d/%d-%02d:%02d:%02d %s (%cdst)",\
-	D(MON), D(DAY), D(YEAR),\
+	"%04d-%02d-%02d %02d:%02d:%02d %s (%cdst)",\
+	D(YEAR), D(MON), D(DAY),\
 	D(HOUR), D(MIN), D(SEC),\
 	W(D(WKD)), L(D(DST))
 

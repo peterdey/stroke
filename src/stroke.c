@@ -326,25 +326,28 @@ times_info(const char *file)
 	char lnk[PATH_MAX];
 	int i, slnk;
 
-	msg("%s:", file);
+	printf("%s:\n", file);
 	
 	if((slnk = laccess(file, F_OK)) >= 0 &&
 	   (i = readlink(file, lnk, sizeof lnk)) > 0) {
 		lnk[i] = 0;
-		msg(" Symbolic link: \"%s\" -> \"%s\" %s",
-		    file, lnk, IFSTR(slnk == LDANGLING, "(dangling)"));
-		msg(" %s shown:", CHKF(SYMLINKS) ? "Symbolic link" : "Actual file");
+		printf("  Symbolic link: \"%s\" -> \"%s\" %s\n",
+		       file, lnk, IFSTR(slnk == LDANGLING, "(dangling)"));
+		printf("  %s shown:\n", CHKF(SYMLINKS) ? "Symbolic link" : "Actual file");
 	}
 
 	if(CHKF(NEXIST)) {
-		msg(" File does not exist. %s",
-		    IFSTR(laccess(file, F_OK) == LDANGLING,
-			  "Dangling symbolic link? Try `-l'."));
+		printf("  File does not exist. %s\n",
+		       IFSTR(laccess(file, F_OK) == LDANGLING,
+			     "Dangling symbolic link? Try `-l'."));
 		return;
 	}
 	
-	for(i = 0; i < TIME_TBLS; i++)
-		msg(" %s: %s", names[i], tv_to_str(time_vals,i));
+	for(i = 0; i < TIME_TBLS; i++) {
+		char *stamp = tv_to_str(time_vals, i);
+		printf("  %s: %s\n", names[i], stamp);
+	}
+	new_str(NULL);
 }
 
 /*
