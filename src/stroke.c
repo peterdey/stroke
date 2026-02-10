@@ -128,9 +128,11 @@ scan(const char *file)
 	} else {
 		statf = CHKF(SYMLINKS) ? &lstat : &stat;
 		if((*statf)(file, &st) < 0) {
-			error_out(ERROR_ERROR_STAT, errno, FLN, file,
-				  IFSTR(!laccess(file, F_OK),
-					"Dangling symbolic link? Try `-l'."));
+			const char *hint = IFSTR(!laccess(file, F_OK),
+						 "Dangling symbolic link? Try `-l'.");
+			if(!*hint)
+				hint = strerror(errno);
+			error_out(ERROR_ERROR_STAT, 0, FLN, file, hint);
 			return -1;
 		}
 	}
@@ -295,10 +297,14 @@ apply(const char *file)
 	
 	/* mtime, atime */
 	if(ft_to_utimbuf(time_vals, &ut) < 0 || (*utimef)(file, &ut) < 0) {
-		if(errno == EPERM || errno == EACCES)
-			error_out(ERROR_ERROR_SETTIM_PERM, errno, FLN, file);
-		else
+		if(errno == EPERM || errno == EACCES) {
+			fprintf(stderr, "%s: ** ERROR: cannot modify \"%s\": %s\n",
+				PROGRAM, file, strerror(errno));
+			last_error_code = ERROR_ERROR_SETTIM_PERM;
+			++error_cnt;
+		} else {
 			error_out(ERROR_ERROR_SETTIM, errno, FLN, file);
+		}
 		return -1;
 	}
 	
@@ -495,7 +501,8 @@ main(int argc, char **argv)
 	}
 
 	GENERAL_BOOL have_ctime_priv = have_ctime_privileges();
-	GENERAL_BOOL copy_ctime_skipped = FALSE;
+	GENERAL_BOOL warn_ctime_pending = FALSE;
+	GENERAL_BOOL ctime_warning_emitted = FALSE;
 
 	if(cli.ctime.set && !have_ctime_priv) {
 		error_out(ERROR_ERROR_CTPRIV, 0, FLN, "--ctime");
@@ -513,7 +520,7 @@ main(int argc, char **argv)
 		memcpy(copy_template, time_vals, sizeof(copy_template));
 		have_copy_template = TRUE;
 		if(!have_ctime_priv)
-			copy_ctime_skipped = TRUE;
+			warn_ctime_pending = TRUE;
 	}
 
 	for(int idx = optind; idx < argc; ++idx) {
@@ -546,10 +553,12 @@ main(int argc, char **argv)
 
 		if(have_copy_template) {
 			memcpy(time_vals, copy_template, sizeof(copy_template));
-			if(have_ctime_priv)
+			if(have_ctime_priv) {
 				SETF(CTAPPLY);
-			else
+			} else {
 				REMF(CTAPPLY);
+				warn_ctime_pending = TRUE;
+			}
 		} else if(!exists) {
 			if(scan(NULL) < 0)
 				return last_error_code;
@@ -617,6 +626,11 @@ main(int argc, char **argv)
 				return last_error_code;
 		}
 
+		if(warn_ctime_pending && !ctime_warning_emitted) {
+			error_out(ERROR_WARNING_CTCOPY, 0, FLN);
+			ctime_warning_emitted = TRUE;
+		}
+
 		if(!cli.dry_run && CHKF(QUIET))
 			continue;
 		if(cli.dry_run && CHKF(QUIET))
@@ -629,13 +643,11 @@ main(int argc, char **argv)
 		}
 
 		times_info(file);
+		warn_ctime_pending = FALSE;
 
-	if(cleared)
-		SETF(NEXIST);
-}
-
-	if(copy_ctime_skipped)
-		error_out(ERROR_WARNING_CTCOPY, 0, FLN);
+		if(cleared)
+			SETF(NEXIST);
+	}
 
 	return 0;
 }

@@ -41,7 +41,7 @@ ERROR_MESSAGE error_messages[] = {
 	EM_INIT(ERROR_ERROR_MODFIL, "Reference file, time stamp or file argument missing"),
 	EM_INIT(ERROR_ERROR_INVMOD, "Invalid modifier(s) encountered"),
 	EM_INIT(ERROR_ERROR_INVFIL, "Invalid file argument"),
-	EM_INIT(ERROR_ERROR_STAT, "Unable to retrieve file information for:\n\"%s\" %s"),
+	EM_INIT(ERROR_ERROR_STAT, "Unable to retrieve file information for \"%s\": %s"),
 	EM_INIT(ERROR_ERROR_GMTIM, "Unable to retrieve time information for: \"%s\""),
 	EM_INIT(ERROR_ERROR_VALDAT, "Date validation failed: \"%s\""),
 	EM_INIT(ERROR_ERROR_TSTMP, "Cannot create time stamp"),
@@ -69,7 +69,7 @@ ERROR_MESSAGE error_messages[] = {
 	EM_INIT(ERROR_ERROR_INFMODF, "Modifier expression list given together with `-i, -info'"),
 	EM_INIT(ERROR_ERROR_FCREATE, "Unable to create file: \"%s\""),
 	EM_INIT(ERROR_ERROR_CTPRIV, "Option `%s' requires root or CAP_SYS_TIME privileges"),
-	EM_INIT(ERROR_ERROR_SETTIM_PERM, "Insufficient permissions to modify: \"%s\""),
+	EM_INIT(ERROR_ERROR_SETTIM_PERM, "Insufficient permissions to modify \"%s\""),
 	
 	ZERO_SENTINEL
 };
