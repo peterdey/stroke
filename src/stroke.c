@@ -56,7 +56,7 @@ const char *usg =
 	"      --copy=FILE       copy all timestamps from FILE\n\n"
 	"Options:\n"
 	"  -l, --symlinks        operate on symbolic links themselves\n"
-	"      --dry-run         validate changes without applying them\n"
+	"  -n, --dry-run         validate changes without applying them\n"
 	"  -p, --preserve-ctime  preserve change time even when mutating other clocks\n"
 	"  -f, --force           skip sanity checks (dangerous)\n"
 	"  -q, --quiet           suppress per-file output\n"
@@ -399,7 +399,7 @@ main(int argc, char **argv)
 		{"force",   no_argument,       NULL, 'f'},
 		{"quiet",   no_argument,       NULL, 'q'},
 		{"verbose", no_argument,       NULL, 'v'},
-		{"dry-run", no_argument,       NULL, 1000},
+		{"dry-run", no_argument,       NULL, 'n'},
 		{"help",    no_argument,       NULL, 'h'},
 		{"version", no_argument,       NULL, 1001},
 		{0,0,0,0}
@@ -420,7 +420,7 @@ main(int argc, char **argv)
 	}
 
 	int opt;
-	while((opt = getopt_long(argc, argv, "m:a:c:r:lpqvfh", long_opts, NULL)) != -1) {
+	while((opt = getopt_long(argc, argv, "m:a:c:r:lpqnvfh", long_opts, NULL)) != -1) {
 		switch(opt) {
 		case 'm':
 			if(parse_timestamp_spec(optarg, &cli.mtime.ts) < 0) {
@@ -473,7 +473,7 @@ main(int argc, char **argv)
 		case 'h':
 			usage(0);
 			break;
-		case 1000: /* --dry-run */
+		case 'n': /* -n, --dry-run */
 			cli.dry_run = TRUE;
 			break;
 		case 1001: /* --version */
@@ -491,7 +491,7 @@ main(int argc, char **argv)
 		error_out(ERROR_WARNING_FORCVAL, 0, FLN);
 
 	if(optind >= argc) {
-		error_out(ERROR_ERROR_INSUFARGS, 0, FLN);
+		fprintf(stderr, PROGRAM": please specify at least one FILE\n\n");
 		usage(1);
 	}
 

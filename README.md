@@ -16,7 +16,7 @@ stroke [OPTIONS] FILE...
   -a, --atime=SPEC      set access time
   -c, --ctime=SPEC      set change time (root/CAP_SYS_TIME required)
       --copy=REF        copy all clocks from REF (setters override)
-      --dry-run         validate changes without touching the files
+  -n, --dry-run         validate changes without touching the files
   -l, --symlinks        operate on symlinks rather than targets
   -p, --preserve-ctime  keep ctime stable while editing mtime/atime
   -q, --quiet           suppress the per-file report
