@@ -10,6 +10,23 @@
 
 AC_PREREQ(2.61)
 AC_INIT([stroke],[0.1.4], [https://github.com/peterdey/stroke/issues])
+stroke_version="$PACKAGE_VERSION"
+AC_MSG_CHECKING([for git describe version])
+if test -d "$srcdir/.git"; then
+   git_describe=`cd "$srcdir" && git describe --tags 2>/dev/null`
+   if test -n "$git_describe"; then
+      case $git_describe in
+         v*) stroke_version=${git_describe#v} ;;
+         *) stroke_version=$git_describe ;;
+      esac
+      AC_MSG_RESULT([$stroke_version])
+   else
+      AC_MSG_RESULT([not found])
+   fi
+else
+   AC_MSG_RESULT([not found])
+fi
+AC_DEFINE_UNQUOTED([STROKE_VERSION], ["$stroke_version"], [Stroke runtime version])
 AC_CONFIG_SRCDIR([src/stroke.h])
 
 #
@@ -125,10 +142,16 @@ AC_CONFIG_FILES([
 	src/libgeneral/Makefile
 	lib/Makefile
 	doc/Makefile])
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION], ["$PACKAGE_VERSION"], [Stroke package version])
+AC_DEFINE_UNQUOTED([VERSION], ["$VERSION"], [Stroke runtime version])
+AH_BOTTOM([
+#undef VERSION
+#define VERSION "@PACKAGE_VERSION@"
+])
 AC_OUTPUT
 AC_MSG_RESULT([
 **************************************
-$PACKAGE_STRING properly configured.
+stroke $stroke_version properly configured.
 Debugging mode: $debugging
 **************************************
 You may now compile and install $PACKAGE_STRING

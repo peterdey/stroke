@@ -123,7 +123,7 @@ Copyright (C) 2009 Free Software Foundation, Inc.
 
 Copyright (C) 2009 Sören Wellhöfer <soeren.wellhoefer@gmx.net>
 
-Copyright (C) 2026 Peter Dey
+Copyright (C) 2026 Peter Dey <github@realmtech.net>
 
 Stroke is released under the GNU General Public License, version 3,
 The full text is available in [`LICENSE`](LICENSE).

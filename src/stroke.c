@@ -2,6 +2,7 @@
  *      stroke.c - Main source file
  * 		
  *      Copyright 2008 Sören Wellhöfer <soeren.wellhoefer@gmx.net>
+ *      Copyright 2026 Peter Dey <github@realmtech.net>
  *      
  *      This program is free software; you can redistribute it and/or modify
  *      it under the terms of the GNU General Public License as published by
@@ -69,10 +70,10 @@ const char *usg =
 
 const char *pinf[] =
 	{"Dynamically altering modification, access, and change time components",
-	 "GPL", "2009, 2010, 2011", "Soeren Wellhoefer (soeren.wellhoefer@gmx.net)"};
+	 "GPL", "2009, 2010, 2011, 2026", "Soeren Wellhoefer (soeren.wellhoefer@gmx.net) and Peter Dey <github@realmtech.net>"};
 
 const char *infostr =
-	"\nGNU "PROGRAM" "VERSION" (libgeneral version %s)\n\n"
+	"\nGNU "PROGRAM" "STROKE_VERSION" (libgeneral version %s)\n\n"
 	"Copyright (C) %s Free Software Foundation, Inc.\n"
 	"This is free software; see the source for copying conditions.  There is NO\n"
 	"warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"

@@ -2723,6 +2723,29 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+stroke_version="$PACKAGE_VERSION"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for git describe version" >&5
+printf %s "checking for git describe version... " >&6; }
+if test -d "$srcdir/.git"; then
+   git_describe=`cd "$srcdir" && git describe --tags 2>/dev/null`
+   if test -n "$git_describe"; then
+      case $git_describe in
+         v*) stroke_version=${git_describe#v} ;;
+         *) stroke_version=$git_describe ;;
+      esac
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $stroke_version" >&5
+printf "%s\n" "$stroke_version" >&6; }
+   else
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: not found" >&5
+printf "%s\n" "not found" >&6; }
+   fi
+else
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: not found" >&5
+printf "%s\n" "not found" >&6; }
+fi
+
+printf "%s\n" "#define STROKE_VERSION \"$stroke_version\"" >>confdefs.h
+
 
 
 #
@@ -7193,6 +7216,13 @@ ac_config_headers="$ac_config_headers config.h"
 
 ac_config_files="$ac_config_files Makefile src/Makefile src/libgeneral/Makefile lib/Makefile doc/Makefile"
 
+
+printf "%s\n" "#define PACKAGE_VERSION \"$PACKAGE_VERSION\"" >>confdefs.h
+
+
+printf "%s\n" "#define VERSION \"$VERSION\"" >>confdefs.h
+
+
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -8687,7 +8717,7 @@ fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result:
 **************************************
-$PACKAGE_STRING properly configured.
+stroke $stroke_version properly configured.
 Debugging mode: $debugging
 **************************************
 You may now compile and install $PACKAGE_STRING
@@ -8697,7 +8727,7 @@ by entering:
 " >&5
 printf "%s\n" "
 **************************************
-$PACKAGE_STRING properly configured.
+stroke $stroke_version properly configured.
 Debugging mode: $debugging
 **************************************
 You may now compile and install $PACKAGE_STRING

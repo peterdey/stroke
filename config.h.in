@@ -129,7 +129,7 @@
 /* Define to the home page for this package. */
 #undef PACKAGE_URL
 
-/* Define to the version of this package. */
+/* Stroke package version */
 #undef PACKAGE_VERSION
 
 /* Define this to 1 if strerror is broken. */
@@ -143,6 +143,9 @@
    backward compatibility; new code need not use it. */
 #undef STDC_HEADERS
 
+/* Stroke runtime version */
+#undef STROKE_VERSION
+
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. This
    macro is obsolete. */
 #undef TIME_WITH_SYS_TIME
@@ -153,7 +156,7 @@
 /* Define if tzset clobbers localtime's static buffer. */
 #undef TZSET_CLOBBERS_LOCALTIME
 
-/* Version number of package */
+/* Stroke runtime version */
 #undef VERSION
 
 /* Define to 1 if on MINIX. */
@@ -244,3 +247,8 @@
 /* Define to empty if the keyword `volatile' does not work. Warning: valid
    code using `volatile' can become incorrect without. Disable with care. */
 #undef volatile
+
+
+#undef VERSION
+#define VERSION "@PACKAGE_VERSION@"
+
