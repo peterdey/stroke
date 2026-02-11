@@ -1,3 +1,15 @@
+stroke (0.2.0-1) unstable; urgency=medium
+
+  * Breaking change: CLI interface has completely changed; no longer compatible
+  * Modernize the CLI grammar and timestamp parsing around parse-datetime,
+    enabling ISO8601, natural language, and relative expressions by default.
+  * Improve privilege handling and diagnostics for ctime operations to be more
+    helpful on systems without CAP_SYS_TIME.
+  * Emit ISO-formatted timestamp output without the legacy `stroke:` prefix
+    for friendlier scripting.
+
+ -- Peter Dey <debian@realmtech.net>  Tue, 10 Feb 2026 23:44:43 +0100
+
 stroke (0.1.4-1) unstable; urgency=medium
 
   * Initial Debian re-package

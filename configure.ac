@@ -9,7 +9,7 @@
 
 
 AC_PREREQ(2.61)
-AC_INIT([stroke],[0.1.4], [https://github.com/peterdey/stroke/issues])
+AC_INIT([stroke],[0.2.0], [https://github.com/peterdey/stroke/issues])
 stroke_version="$PACKAGE_VERSION"
 AC_MSG_CHECKING([for git describe version])
 if test -d "$srcdir/.git"; then

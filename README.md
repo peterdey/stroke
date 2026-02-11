@@ -97,7 +97,7 @@ Grab the latest `.deb` package from the
 with `dpkg`:
 
 ```bash
-sudo dpkg -i stroke_0.1.4-1_amd64.deb
+sudo dpkg -i stroke_0.2.0-1_amd64.deb
 ```
 
 You can also download the accompanying source package (`.dsc`,
