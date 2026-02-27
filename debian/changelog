@@ -1,3 +1,11 @@
+stroke (0.2.1-1) UNRELEASED; urgency=medium
+
+  * Add --utc option to treat timestamps as UTC
+  * Use gnulib for date validation instead of trying to implement our
+    own
+
+ -- Peter Dey <debian@realmtech.net>  Fri, 27 Feb 2026 17:28:58 +0100
+
 stroke (0.2.0-1) unstable; urgency=medium
 
   * Breaking change: CLI interface has completely changed; no longer compatible
