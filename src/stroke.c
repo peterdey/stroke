@@ -56,9 +56,10 @@ const char *usg =
 	"  -c, --ctime=SPEC      set change time to SPEC (requires root)\n"
 	"      --copy=FILE       copy all timestamps from FILE\n\n"
 	"Options:\n"
-	"  -l, --symlinks        operate on symbolic links themselves\n"
-	"  -n, --dry-run         validate changes without applying them\n"
-	"  -p, --preserve-ctime  preserve change time even when mutating other clocks\n"
+"  -l, --symlinks        operate on symbolic links themselves\n"
+"  -n, --dry-run         validate changes without applying them\n"
+"  -Z, --utc             interpret SPEC in Coordinated Universal Time\n"
+"  -p, --preserve-ctime  preserve change time even when mutating other clocks\n"
 	"  -f, --force           skip sanity checks (dangerous)\n"
 	"  -q, --quiet           suppress per-file output\n"
 	"  -v, --verbose         emit additional diagnostics\n"
@@ -169,9 +170,11 @@ struct stroke_cli {
 	struct timestamp_param ctime;
 	const char *copy_from;
 	GENERAL_BOOL dry_run;
+	GENERAL_BOOL parse_utc;
 };
 
-static int parse_timestamp_spec(const char *spec, struct timespec *out);
+static int parse_timestamp_spec(const char *spec, struct timespec *out,
+				GENERAL_BOOL parse_as_utc);
 static int assign_timespec(FILE_TIMES ft, int slot, const struct timespec *ts);
 static int check_dry_run_permissions(const char *file, GENERAL_BOOL exists,
 				     GENERAL_BOOL will_touch_ctime,
@@ -190,14 +193,25 @@ current_timespec(struct timespec *ts)
 }
 
 static int
-parse_timestamp_spec(const char *spec, struct timespec *out)
+parse_timestamp_spec(const char *spec, struct timespec *out,
+		     GENERAL_BOOL parse_as_utc)
 {
 	struct timespec base;
 	current_timespec(&base);
-	if(!parse_datetime(out, spec, &base))
+
+	if(!parse_as_utc) {
+		if(!parse_datetime(out, spec, &base))
+			return -1;
+		return 0;
+	}
+
+	timezone_t utc = tzalloc("UTC0");
+	if(!utc)
 		return -1;
 
-	return 0;
+	int rc = parse_datetime2(out, spec, &base, 0, utc, "UTC0") ? 0 : -1;
+	tzfree(utc);
+	return rc;
 }
 
 static int
@@ -404,6 +418,7 @@ main(int argc, char **argv)
 		{"quiet",   no_argument,       NULL, 'q'},
 		{"verbose", no_argument,       NULL, 'v'},
 		{"dry-run", no_argument,       NULL, 'n'},
+		{"utc",     no_argument,       NULL, 'Z'},
 		{"help",    no_argument,       NULL, 'h'},
 		{"version", no_argument,       NULL, 1001},
 		{0,0,0,0}
@@ -424,10 +439,11 @@ main(int argc, char **argv)
 	}
 
 	int opt;
-	while((opt = getopt_long(argc, argv, "m:a:c:r:lpqnvfh", long_opts, NULL)) != -1) {
+	while((opt = getopt_long(argc, argv, "m:a:c:r:lpqnvfZh", long_opts, NULL)) != -1) {
 		switch(opt) {
 		case 'm':
-			if(parse_timestamp_spec(optarg, &cli.mtime.ts) < 0) {
+			if(parse_timestamp_spec(optarg, &cli.mtime.ts,
+						cli.parse_utc) < 0) {
 				error_out(ERROR_ERROR_INVTSP, 0, FLN, optarg);
 				return last_error_code;
 			}
@@ -435,7 +451,8 @@ main(int argc, char **argv)
 			have_setters = TRUE;
 			break;
 		case 'a':
-			if(parse_timestamp_spec(optarg, &cli.atime.ts) < 0) {
+			if(parse_timestamp_spec(optarg, &cli.atime.ts,
+						cli.parse_utc) < 0) {
 				error_out(ERROR_ERROR_INVTSP, 0, FLN, optarg);
 				return last_error_code;
 			}
@@ -443,7 +460,8 @@ main(int argc, char **argv)
 			have_setters = TRUE;
 			break;
 		case 'c':
-			if(parse_timestamp_spec(optarg, &cli.ctime.ts) < 0) {
+			if(parse_timestamp_spec(optarg, &cli.ctime.ts,
+						cli.parse_utc) < 0) {
 				error_out(ERROR_ERROR_INVTSP, 0, FLN, optarg);
 				return last_error_code;
 			}
@@ -479,6 +497,9 @@ main(int argc, char **argv)
 			break;
 		case 'n': /* -n, --dry-run */
 			cli.dry_run = TRUE;
+			break;
+		case 'Z':
+			cli.parse_utc = TRUE;
 			break;
 		case 1001: /* --version */
 			info();

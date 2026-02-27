@@ -103,6 +103,10 @@
 
 #include <config.h>
 
+#ifndef GNULIB_PARSE_DATETIME2
+# define GNULIB_PARSE_DATETIME2 1
+#endif
+
 #include "gl-compat.h"
 #include "tz-compat.h"
 

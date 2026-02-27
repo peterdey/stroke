@@ -47,6 +47,9 @@ updating just \fBmtime\fR.
 Perform every parse and permission check but stop before mutating the
 filesystem. The per-file report reflects the changes that would occur.
 .TP
+\fB-Z\fR, \fB--utc\fR
+Interpret supplied timestamp as UTC instead of the host's local timezone.
+.TP
 \fB-p\fR, \fB--preserve-ctime\fR
 Keep the change time stable while editing \fBmtime\fR and/or \fBatime\fR.
 This option is ignored if \fB--ctime\fR or \fB--copy\fR is used, as those
@@ -90,7 +93,8 @@ Time-zone qualified strings (\fB2024-06-01 10:00 +0200\fR).
 Numeric offsets are honored even on older libcs. Named time zones
 (\fBEurope/Berlin\fR, \fBPST\fR, \fBUTC\fR, etc.) fall back to the
 system's current timezone when libc lacks \fBtzalloc\fR support; use
-explicit offsets or UTC literals if you need portable results.
+explicit offsets, UTC literals, or \fB--utc\fR if you need portable
+results without embedding offsets in every string.
 .PP
 If multiple setters are supplied, each uses the same \fISPEC\fR grammar.
 When \fB--copy\fR is combined with explicit setters, \fBstroke\fR first

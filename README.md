@@ -17,6 +17,7 @@ stroke [OPTIONS] FILE...
   -c, --ctime=SPEC      set change time (root/CAP_SYS_TIME required)
       --copy=REF        copy all clocks from REF (setters override)
   -n, --dry-run         validate changes without touching the files
+  -Z, --utc             interpret setters in UTC instead of local time
   -l, --symlinks        operate on symlinks rather than targets
   -p, --preserve-ctime  keep ctime stable while editing mtime/atime
   -q, --quiet           suppress the per-file report
@@ -28,7 +29,7 @@ All setters accept the GNU `parse-datetime` grammar: relative offsets
 structured timestamps, and numeric UTC offsets
 (`2026-01-02 23:01:22 +0100`). Named zones (`Europe/Berlin`, `PST`, etc.)
 fall back to the host's local timezone on older libcs, so prefer explicit
-offsets or UTC literals when the zone matters.
+offsets, `--utc`, or UTC literals when the zone matters.
 
 ## Features at a glance
 
