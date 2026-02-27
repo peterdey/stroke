@@ -248,35 +248,32 @@ ft_to_utimbuf(FILE_TIMES time_vals, struct utimbuf *ut)
 int
 validate_times(FILE_TIMES time_vals)
 {
-	static const int months = 0xA50;
 	register int j;
 	int t;
 
-	if(CHKF(FORCE)) goto finish;	
+	if(CHKF(FORCE))
+		return 0;
 
 	for(t = 0; t < TIME_TBLS; t++) {
-
-		
 		for(j = 0; j < TIME_VALS-1; j++) {
 			if(!validate(time_vals[t][j].name, time_vals[t][j].val))
 				goto error;
 		}
 
-		if((months & (1 << D(MON))) && D(DAY) > 30) {
+		struct tm tm = {0};
+		translate(&tm, time_vals, t, TO_TM);
+		struct tm original = tm;
+		if(mktime(&tm) == (time_t)-1)
 			goto error;
-		} else if(D(MON) == 2) {
-			/* leap year */
-			if((((D(YEAR) % 100) && !(D(YEAR) % 4)) || !(D(YEAR) % 400)) && D(DAY) > 29)
-				goto error;
-			else if(D(DAY) > 28)
-				goto error;
-		}		
+		if(original.tm_year != tm.tm_year ||
+		   original.tm_mon  != tm.tm_mon  ||
+		   original.tm_mday != tm.tm_mday)
+			goto error;
 	}
 
- finish:
 	return 0;
-	
- error:
+
+error:
 	error_out(ERROR_ERROR_VALDAT, 0, FLN, tv_to_str(time_vals, t));
 	return -1;
 }
