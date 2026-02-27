@@ -262,7 +262,7 @@ validate_times(FILE_TIMES time_vals)
 				goto error;
 		}
 
-		if(months >> D(MON) && D(DAY) > 30) {
+		if((months & (1 << D(MON))) && D(DAY) > 30) {
 			goto error;
 		} else if(D(MON) == 2) {
 			/* leap year */
